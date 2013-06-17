@@ -1,0 +1,81 @@
+{% load i18n %}<fieldset>
+    <legend>{% trans "Billing Address" %}</legend>
+
+    <p>
+    <label for='address-line1' class='required'>{% trans "Address 1" %}</label>
+    <input id='address-line1' />
+    </p>
+    
+    <p>
+    <label for='address-line2'>{% trans "Address 2" %}</label>
+    <input id='address-line2' />
+    </p>
+    
+    <p>
+    <label for='address-city' class='required'>{% trans "City" %}</label>
+    <input id='address-city' />
+    </p>
+    
+    <p>
+    <label for='address-state' class='required'>{% trans "State" %}</label>
+    <input id='address-state' />
+    </p>
+    
+    <p>
+    <label for='address-postcode' class='required'>{% trans "Postcode" %}</label>
+    <input id='address-postcode' />
+    </p>
+    
+    <p>
+    <label for='address-country' class='required'>{% trans "Country" %}</label>
+    <input id='address-country'>
+    </p>
+
+</fieldset>
+
+<fieldset>
+    <legend>{% trans "Credit Card Details" %}</legend>
+    
+    <div class='errors' style='display:none'>
+        <h3></h3>
+        <ul></ul>
+    </div>
+
+    <p>
+    <label for='cc-number' class='required'>{% trans "Credit Card Number" %}</label>
+    <input id='cc-number' type='text' placeholder='4111 2222 3333 4444'/>
+    </p>
+
+    <p>
+    <label for='cc-name' class='required'>{% trans "Name on Card" %}</label>
+    <input id='cc-name' type='text' placeholder='John H Citizen'/>
+    </p>
+
+    <p>
+    <label for='cc-expiry-month' class='required'>{% trans "Card Expiry" %}</label>
+    <select id='cc-expiry-month' class='expiry'>
+        <option value='01'>{% trans "01 - January" %}</option>
+        <option value='02'>{% trans "02 - February" %}</option>
+        <option value='03'>{% trans "03 - March" %}</option>
+        <option value='04'>{% trans "04 - April" %}</option>
+        <option value='05'>{% trans "05 - May" %}</option>
+        <option value='06'>{% trans "06 - June" %}</option>
+        <option value='07'>{% trans "07 - July" %}</option>
+        <option value='08'>{% trans "08 - August" %}</option>
+        <option value='09'>{% trans "09 - September" %}</option>
+        <option value='10'>{% trans "10 - October" %}</option>
+        <option value='11'>{% trans "11 - November" %}</option>
+        <option value='12'>{% trans "12 - December" %}</option>
+    </select>
+    &nbsp;
+    <select id='cc-expiry-year' class='expiry'>{% for year in pin_cc_years %}
+        <option value='{{ year }}'>{{ year }}" %}</option>{% endfor %}
+    </select>
+    </p>
+
+    <p>
+    <label for='cc-cvc' class='required'>{% trans "Card Security Code" %}</label>
+    <input id='cc-cvc' type='number' min='100' max='9999' placeholder='123' /> <small>{% trans "Last 3 digits on the back of your card" %}</small>
+    </p>
+</fieldset>
+

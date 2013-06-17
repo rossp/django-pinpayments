@@ -1,0 +1,5 @@
+include README.md
+
+recursive-include pinpayments *.py
+recursive-include pinpayments/locale *.po *.mo
+recursive-include pinpayments/templates *.html
