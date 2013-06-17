@@ -119,6 +119,8 @@ setup(
         "Operating System :: OS Independent",
         "License :: OSI Approved :: BSD License",
         "Natural Language :: English",
+        "Intended Audience :: Developers",
+        "Development Status :: 3 - Alpha",
     ],
     keywords=['django', 'payments', 'pinpayments',],
     author='Ross Poulton',
