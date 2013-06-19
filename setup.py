@@ -4,7 +4,7 @@ from distutils.util import convert_path
 from fnmatch import fnmatchcase
 from setuptools import setup, find_packages
 
-version = '0.1.0'
+version = '0.1.2'
 
 # Provided as an attribute, so you can append to these instead
 # of replicating them:
@@ -109,7 +109,7 @@ your Django applications.
 setup(
     name='django-pinpayments',
     version=version,
-    description="Tools for easily adding pin.net.ay payment processing to your Django proejct",
+    description="Tools for easily adding pin.net.au payment processing to your Django proejct",
     long_description=LONG_DESCRIPTION,
     classifiers=[
         "Programming Language :: Python",
