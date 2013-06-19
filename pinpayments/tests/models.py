@@ -3,7 +3,12 @@ from django.conf import settings
 from django.test import TestCase
 from django.test.utils import override_settings
 from mock import patch
-from pinpayments.models import PinTransaction, ConfigError
+from pinpayments.models import (
+    ConfigError,
+    CustomerToken,
+    PinError,
+    PinTransaction
+)
 from requests import Response
 
 ENV_MISSING_SECRET = {
@@ -27,23 +32,35 @@ class FakeResponse(Response):
         self._content = content
 
 class ModelTests(TestCase):
+    def setUp(self):
+        super(ModelTests, self).setUp()
+        self.transaction = PinTransaction()
+        self.transaction.card_token = '12345'
+        self.transaction.ip_address = '127.0.0.1'
+        self.transaction.amount = 500
+        self.transaction.currency = 'AUD'
+        self.transaction.email_address = 'test@example.com'
+        self.transaction.environment = 'test'
+
     # Need to override the setting so we can delete it, not sure why.
     @override_settings(PIN_DEFAULT_ENVIRONMENT=None)
     def test_save_defaults(self):
         # Unset PIN_DEFAULT_ENVIRONMENT to test that the environment defaults
         # to 'test'.
         del settings.PIN_DEFAULT_ENVIRONMENT
+        self.transaction.environment = None
+        self.transaction.save()
+        self.assertEqual(self.transaction.environment, 'test')
+        self.assertTrue(self.transaction.date)
 
-        t = PinTransaction()
-        t.card_token = '12345'
-        t.ip_address = '127.0.0.1'
-        t.amount = 500
-        t.currency = 'AUD'
-        t.email_address = 'test@example.com'
-        t.save()
+    def test_save_card_or_customer_token(self):
+        self.transaction.card_token = None
+        self.transaction.customer_token = None
+        self.assertRaises(PinError, self.transaction.save)
 
-        self.assertEqual(t.environment, 'test')
-        self.assertTrue(t.date)
+    def test_valid_environment(self):
+        self.transaction.environment = 'this should not exist'
+        self.assertRaises(PinError, self.transaction.save)
 
 class ProcessTransactionsTests(TestCase):
     def setUp(self):
@@ -100,12 +117,11 @@ class ProcessTransactionsTests(TestCase):
         result = self.transaction.process_transaction()
         self.assertIsNone(result)
 
+    @override_settings(PIN_ENVIRONMENTS={})
     @patch('requests.post')
     def test_valid_environment(self, mock_request):
-        self.transaction.environment = 'this should not exist'
-        self.transaction.save()
         mock_request.return_value = FakeResponse(200, self.response_data)
-        self.assertRaises(ConfigError, self.transaction.process_transaction)
+        self.assertRaises(PinError, self.transaction.process_transaction)
 
     @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_SECRET)
     @patch('requests.post')

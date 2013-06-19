@@ -149,7 +149,7 @@ class PinTransaction(models.Model):
         if not self.environment:
             self.environment = getattr(settings, 'PIN_DEFAULT_ENVIRONMENT', 'test')
 
-        if self.environment not in pin_config:
+        if self.environment not in getattr(settings, 'PIN_ENVIRONMENTS', {}):
             raise PinError("Pin Environment '%s' does not exist" % self.environment)
 
         if not self.date:
@@ -189,13 +189,7 @@ class PinTransaction(models.Model):
         else:
             payload['customer_token'] = self.customer_token.token
 
-        # Load config again here in case it has been updated.
-        pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
-
-        if self.environment not in pin_config.keys():
-            raise ConfigError("Invalid environment '%s'" % self.environment)
-
-        pin_env = pin_config[self.environment]
+        pin_env = getattr(settings, 'PIN_ENVIRONMENTS', {})[self.environment]
 
         (pin_secret, pin_host) = (pin_env.get('secret', None), pin_env.get('host', None))
 
