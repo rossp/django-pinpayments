@@ -135,3 +135,9 @@ class ProcessTransactionsTests(TestCase):
         mock_request.return_value = FakeResponse(200, self.response_data)
         self.assertRaises(ConfigError, self.transaction.process_transaction)
 
+    @patch('requests.post')
+    def test_response_not_json(self, mock_request):
+        mock_request.return_value = FakeResponse(200, '')
+        response = self.transaction.process_transaction()
+        self.assertEqual(response, 'Failure.')
+
