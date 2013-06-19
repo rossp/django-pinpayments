@@ -87,8 +87,9 @@ class PinTransaction(models.Model):
             'card_token': self.card_token,
         }
 
-        # Load config again here in case they have been updated.
+        # Load config again here in case it has been updated.
         pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
+
         if self.environment not in pin_config.keys():
             raise ConfigError("Invalid environment '%s'" % self.environment)
 
