@@ -87,6 +87,8 @@ class PinTransaction(models.Model):
             'card_token': self.card_token,
         }
 
+        # Load config again here in case they have been updated.
+        pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
         if self.environment not in pin_config.keys():
             raise ConfigError("Invalid environment '%s'" % self.environment)
 
@@ -95,7 +97,7 @@ class PinTransaction(models.Model):
         (pin_secret, pin_host) = (pin_env.get('secret', None), pin_env.get('host', None))
 
         if not (pin_secret and pin_host):
-            raise ConfigError("Environment '%s' does not have secret and host configured." % environment)
+            raise ConfigError("Environment '%s' does not have secret and host configured." % self.environment)
 
         response = requests.post(
             "https://%s/1/charges" % pin_host,

@@ -6,6 +6,20 @@ from mock import patch
 from pinpayments.models import PinTransaction, ConfigError
 from requests import Response
 
+ENV_MISSING_SECRET = {
+    'test': {
+        'key': 'key1',
+        'host': 'test-api.pin.net.au',
+    },
+}
+
+ENV_MISSING_HOST = {
+    'test': {
+        'key': 'key1',
+        'secret': 'secret1',
+    },
+}
+
 class FakeResponse(Response):
     def __init__(self, status_code, content):
         super(FakeResponse, self).__init__()
@@ -40,6 +54,7 @@ class ProcessTransactionsTests(TestCase):
         self.transaction.amount = 500
         self.transaction.currency = 'AUD'
         self.transaction.email_address = 'test@example.com'
+        self.transaction.environment = 'test'
         self.transaction.save()
         self.response_data = json.dumps({
             'response': {
@@ -91,3 +106,16 @@ class ProcessTransactionsTests(TestCase):
         self.transaction.save()
         mock_request.return_value = FakeResponse(200, self.response_data)
         self.assertRaises(ConfigError, self.transaction.process_transaction)
+
+    @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_SECRET)
+    @patch('requests.post')
+    def test_secret_set(self, mock_request):
+        mock_request.return_value = FakeResponse(200, self.response_data)
+        self.assertRaises(ConfigError, self.transaction.process_transaction)
+
+    @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_HOST)
+    @patch('requests.post')
+    def test_host_set(self, mock_request):
+        mock_request.return_value = FakeResponse(200, self.response_data)
+        self.assertRaises(ConfigError, self.transaction.process_transaction)
+
