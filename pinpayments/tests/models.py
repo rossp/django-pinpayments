@@ -3,7 +3,7 @@ from django.conf import settings
 from django.test import TestCase
 from django.test.utils import override_settings
 from mock import patch
-from pinpayments.models import PinTransaction
+from pinpayments.models import PinTransaction, ConfigError
 from requests import Response
 
 class FakeResponse(Response):
@@ -16,7 +16,7 @@ class ModelTests(TestCase):
     # Need to override the setting so we can delete it, not sure why.
     @override_settings(PIN_DEFAULT_ENVIRONMENT=None)
     def test_save_defaults(self):
-        # Unset PIN_DEFAULT_ENVIRONMENT to test that the enviroment defaults
+        # Unset PIN_DEFAULT_ENVIRONMENT to test that the environment defaults
         # to 'test'.
         del settings.PIN_DEFAULT_ENVIRONMENT
 
@@ -84,3 +84,10 @@ class ProcessTransactionsTests(TestCase):
         # Shouldn't process anything the second time
         result = self.transaction.process_transaction()
         self.assertIsNone(result)
+
+    @patch('requests.post')
+    def test_valid_environment(self, mock_request):
+        self.transaction.environment = 'this should not exist'
+        self.transaction.save()
+        mock_request.return_value = FakeResponse(200, self.response_data)
+        self.assertRaises(ConfigError, self.transaction.process_transaction)
