@@ -24,6 +24,7 @@ The provided Card tokens can also be used to create [Customer tokens](https://pi
 
 * Django (Only tested on 1.4 & 1.5)
 * [python-requests](http://docs.python-requests.org/en/latest/)
+* [Mock](http://www.voidspace.org.uk/python/mock/)
 
 ### Settings
 
