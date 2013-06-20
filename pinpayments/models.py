@@ -18,9 +18,7 @@ class PinError(Exception):
         return repr(self.value)
 
 
-pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
-
-if pin_config == {}:
+if getattr(settings, 'PIN_ENVIRONMENTS', {}) == {}:
     raise ConfigError("PIN_ENVIRONMENTS not defined.")
 
 
@@ -59,6 +57,8 @@ class CustomerToken(models.Model):
 
     @classmethod
     def create_from_card_token(cls, card_token, user, environment=''):
+        pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
+
         payload = {
             'email': user.email,
             'card_token': card_token,
@@ -149,7 +149,7 @@ class PinTransaction(models.Model):
         if not self.environment:
             self.environment = getattr(settings, 'PIN_DEFAULT_ENVIRONMENT', 'test')
 
-        if self.environment not in pin_config:
+        if self.environment not in getattr(settings, 'PIN_ENVIRONMENTS', {}):
             raise PinError("Pin Environment '%s' does not exist" % self.environment)
 
         if not self.date:
@@ -189,15 +189,12 @@ class PinTransaction(models.Model):
         else:
             payload['customer_token'] = self.customer_token.token
 
-        if self.environment not in pin_config.keys():
-            raise ConfigError("Invalid environment '%s'" % self.environment)
-
-        pin_env = pin_config[self.environment]
+        pin_env = getattr(settings, 'PIN_ENVIRONMENTS', {})[self.environment]
 
         (pin_secret, pin_host) = (pin_env.get('secret', None), pin_env.get('host', None))
 
         if not (pin_secret and pin_host):
-            raise ConfigError("Environment '%s' does not have secret and host configured." % environment)
+            raise ConfigError("Environment '%s' does not have secret and host configured." % self.environment)
 
         response = requests.post(
             "https://%s/1/charges" % pin_host,
