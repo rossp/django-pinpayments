@@ -45,6 +45,43 @@ class CustomerTokenTests(TestCase):
         token.save()
         self.assertEqual(token.environment, 'test')
 
+class CreateFromCardTokenTests(TestCase):
+    def setUp(self):
+        super(CreateFromCardTokenTests, self).setUp()
+        self.user = User.objects.create()
+        self.response_data = json.dumps({
+            'response': {
+                'token': '1234',
+                'email': 'test@example.com',
+                'created_at': '2012-06-22T06:27:33Z',
+                'card': {
+                    'token': 'card_nytGw7koRg23EEp9NTmz9w',
+                    'display_number': 'XXXX-XXXX-XXXX-0000',
+                    'scheme': 'master',
+                    'address_line1': '42 Sevenoaks St',
+                    'address_line2': None,
+                    'address_city': 'Lathlain',
+                    'address_postcode': '6454',
+                    'address_state': 'WA',
+                    'address_country': 'Australia'
+                }
+            }
+        })
+
+    @patch('requests.post')
+    def test_default_environment(self, mock_request):
+        mock_request.return_value = FakeResponse(200, self.response_data)
+        token = CustomerToken.create_from_card_token('1234', self.user)
+        self.assertEqual(token.environment, 'test')
+
+    @override_settings(PIN_ENVIRONMENTS={})
+    @patch('requests.post')
+    def test_valid_environment(self, mock_request):
+        mock_request.return_value = FakeResponse(200, self.response_data)
+        with self.assertRaises(ConfigError):
+            CustomerToken.create_from_card_token('1234', self.user,
+                environment='test')
+
 class PinTransactionTests(TestCase):
     def setUp(self):
         super(PinTransactionTests, self).setUp()

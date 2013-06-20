@@ -18,9 +18,7 @@ class PinError(Exception):
         return repr(self.value)
 
 
-pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
-
-if pin_config == {}:
+if getattr(settings, 'PIN_ENVIRONMENTS', {}) == {}:
     raise ConfigError("PIN_ENVIRONMENTS not defined.")
 
 
@@ -59,6 +57,8 @@ class CustomerToken(models.Model):
 
     @classmethod
     def create_from_card_token(cls, card_token, user, environment=''):
+        pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
+
         payload = {
             'email': user.email,
             'card_token': card_token,
