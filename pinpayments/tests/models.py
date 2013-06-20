@@ -56,11 +56,11 @@ class ModelTests(TestCase):
     def test_save_card_or_customer_token(self):
         self.transaction.card_token = None
         self.transaction.customer_token = None
-        self.assertRaises(self.transaction.save, PinError)
+        self.assertRaises(PinError, self.transaction.save)
 
     def test_valid_environment(self):
         self.transaction.environment = 'this should not exist'
-        self.assertRaises(self.transaction.save, PinError)
+        self.assertRaises(PinError, self.transaction.save)
 
 class ProcessTransactionsTests(TestCase):
     def setUp(self):
@@ -121,19 +121,19 @@ class ProcessTransactionsTests(TestCase):
     @patch('requests.post')
     def test_valid_environment(self, mock_request):
         mock_request.return_value = FakeResponse(200, self.response_data)
-        self.assertRaises(self.transaction.process_transaction, PinError)
+        self.assertRaises(PinError, self.transaction.process_transaction)
 
     @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_SECRET)
     @patch('requests.post')
     def test_secret_set(self, mock_request):
         mock_request.return_value = FakeResponse(200, self.response_data)
-        self.assertRaises(self.transaction.process_transaction, ConfigError)
+        self.assertRaises(ConfigError, self.transaction.process_transaction)
 
     @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_HOST)
     @patch('requests.post')
     def test_host_set(self, mock_request):
         mock_request.return_value = FakeResponse(200, self.response_data)
-        self.assertRaises(self.transaction.process_transaction, ConfigError)
+        self.assertRaises(ConfigError, self.transaction.process_transaction)
 
     @patch('requests.post')
     def test_response_not_json(self, mock_request):
