@@ -82,6 +82,22 @@ class CreateFromCardTokenTests(TestCase):
             CustomerToken.create_from_card_token('1234', self.user,
                 environment='test')
 
+    @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_SECRET)
+    @patch('requests.post')
+    def test_secret_set(self, mock_request):
+        mock_request.return_value = FakeResponse(200, self.response_data)
+        with self.assertRaises(ConfigError):
+            CustomerToken.create_from_card_token('1234', self.user,
+                environment='test')
+
+    @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_HOST)
+    @patch('requests.post')
+    def test_host_set(self, mock_request):
+        mock_request.return_value = FakeResponse(200, self.response_data)
+        with self.assertRaises(ConfigError):
+            CustomerToken.create_from_card_token('1234', self.user,
+                environment='test')
+
 class PinTransactionTests(TestCase):
     def setUp(self):
         super(PinTransactionTests, self).setUp()
