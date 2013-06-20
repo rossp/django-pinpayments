@@ -181,13 +181,18 @@ Because you're keeping the `CustomerToken`, you can re-bill them as often as is 
 
 ### Warnings
 
-I'm not responsible for anything this code does to your customers, your bank account, or your Pin account. I am providing it in good faith and provide no warranties.  The above code samples are just that: Samples. Your production code should be full of testing and other ways to deal with the many errors and problems that arise from processing payments online.
+The contributors and I are not responsible for anything this code does to your customers, your bank account, or your Pin account. We are providing it in good faith and provide no warranties.  The above code samples are just that: Samples. Your production code should be full of testing and other ways to deal with the many errors and problems that arise from processing payments online.
 
 All use is at your own risk. 
 
+### Contributors
+
+Ross Poulton https://github.com/rossp
+Huw https://github.com/huwshimi
+
 ### Contributing
 
-I'd love to improve this library. Please log issues and pull requests via GitHUb.
+Want to help improve django-pinpayments and see your name in ASCII above? Your help is welcomed! Please log issues and pull requests via GitHub <https://github.com/rossp/django-pinpayments>
 
 ### License
 
