@@ -100,6 +100,25 @@ class ProcessTransactionsTests(TestCase):
                 'transfer': None
             }
         })
+        self.response_error = json.dumps({
+            'error': 'invalid_resource',
+            'error_description':
+                'One or more parameters were missing or invalid.',
+            # Should there really be a charge token?
+            'charge_token': '1234',
+            'messages': [{
+                'code': 'description_invalid',
+                'message': 'Description can\'t be blank',
+                'param': 'description'
+            }]
+        })
+        self.response_error_no_messages = json.dumps({
+            'error': 'invalid_resource',
+            'error_description':
+                'One or more parameters were missing or invalid.',
+            # Should there really be a charge token?
+            'charge_token': '1234'
+        })
 
     @patch('requests.post')
     def test_only_process_once(self, mock_request):
@@ -140,4 +159,18 @@ class ProcessTransactionsTests(TestCase):
         mock_request.return_value = FakeResponse(200, '')
         response = self.transaction.process_transaction()
         self.assertEqual(response, 'Failure.')
+
+    @patch('requests.post')
+    def test_response_error_with_messages(self, mock_request):
+        mock_request.return_value = FakeResponse(200, self.response_error)
+        response = self.transaction.process_transaction()
+        self.assertEqual(response, 'Failure: Description can\'t be blank')
+
+    @patch('requests.post')
+    def test_response_error_without_messages(self, mock_request):
+        mock_request.return_value = FakeResponse(200,
+            self.response_error_no_messages)
+        response = self.transaction.process_transaction()
+        self.assertEqual(response,
+            'Failure: One or more parameters were missing or invalid.')
 
