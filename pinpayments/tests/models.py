@@ -55,7 +55,7 @@ class CreateFromCardTokenTests(TestCase):
                 'email': 'test@example.com',
                 'created_at': '2012-06-22T06:27:33Z',
                 'card': {
-                    'token': 'card_nytGw7koRg23EEp9NTmz9w',
+                    'token': '54321',
                     'display_number': 'XXXX-XXXX-XXXX-0000',
                     'scheme': 'master',
                     'address_line1': '42 Sevenoaks St',
@@ -66,6 +66,11 @@ class CreateFromCardTokenTests(TestCase):
                     'address_country': 'Australia'
                 }
             }
+        })
+        self.response_error = json.dumps({
+            'error': 'invalid_resource',
+            'error_description':
+                'One or more parameters were missing or invalid.'
         })
 
     @patch('requests.post')
@@ -97,6 +102,32 @@ class CreateFromCardTokenTests(TestCase):
         with self.assertRaises(ConfigError):
             CustomerToken.create_from_card_token('1234', self.user,
                 environment='test')
+
+    @patch('requests.post')
+    def test_response_not_json(self, mock_request):
+        mock_request.return_value = FakeResponse(200, '')
+        with self.assertRaises(PinError):
+            CustomerToken.create_from_card_token('1234', self.user,
+                environment='test')
+
+    @patch('requests.post')
+    def test_response_error(self, mock_request):
+        mock_request.return_value = FakeResponse(200, self.response_error)
+        with self.assertRaises(PinError):
+            CustomerToken.create_from_card_token('1234', self.user,
+                environment='test')
+
+    @patch('requests.post')
+    def test_response_success(self, mock_request):
+        mock_request.return_value = FakeResponse(200, self.response_data)
+        customer = CustomerToken.create_from_card_token('1234', self.user,
+            environment='test')
+        self.assertIsInstance(customer, CustomerToken)
+        self.assertEqual(customer.user, self.user)
+        self.assertEqual(customer.token, '1234')
+        self.assertEqual(customer.environment, 'test')
+        self.assertEqual(customer.card_number, 'XXXX-XXXX-XXXX-0000')
+        self.assertEqual(customer.card_type, 'master')
 
 class PinTransactionTests(TestCase):
     def setUp(self):
