@@ -187,8 +187,8 @@ All use is at your own risk.
 
 ### Contributors
 
-Ross Poulton https://github.com/rossp
-Huw https://github.com/huwshimi
+* Ross Poulton https://github.com/rossp
+* Huw https://github.com/huwshimi
 
 ### Contributing
 
