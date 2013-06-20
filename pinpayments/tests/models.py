@@ -174,3 +174,21 @@ class ProcessTransactionsTests(TestCase):
         self.assertEqual(response,
             'Failure: One or more parameters were missing or invalid.')
 
+    @patch('requests.post')
+    def test_response_success(self, mock_request):
+        mock_request.return_value = FakeResponse(200, self.response_data)
+        response = self.transaction.process_transaction()
+        self.assertEqual(response, 'Success!')
+        self.assertTrue(self.transaction.succeeded)
+        self.assertEqual(self.transaction.transaction_token, '12345')
+        self.assertEqual(self.transaction.fees, 5.0)
+        self.assertEqual(self.transaction.pin_response, 'Success!')
+        self.assertEqual(self.transaction.card_address1, '42 Sevenoaks St')
+        self.assertIsNone(self.transaction.card_address2)
+        self.assertEqual(self.transaction.card_city, 'Lathlain')
+        self.assertEqual(self.transaction.card_state, 'WA')
+        self.assertEqual(self.transaction.card_postcode, '6454')
+        self.assertEqual(self.transaction.card_country, 'Australia')
+        self.assertEqual(self.transaction.card_number, 'XXXX-XXXX-XXXX-0000')
+        self.assertEqual(self.transaction.card_type, 'master')
+
