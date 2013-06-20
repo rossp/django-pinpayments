@@ -72,19 +72,19 @@ At runtime, the `{% pin_headers %}` template tag can define which environment to
 
 Two template tags are included. One includes the Pin.js library and associated JavaScript, and the other renders a form that doesn't submit to your server. Both are required.
 
-Both tags are in `pin_payments_tags`, so you should include `{% load pin_payments_tags %}` somewhere near the top of your template.
+Both tags are in `pin_payment_tags`, so you should include `{% load pin_payment_tags %}` somewhere near the top of your template.
 
 #### `pin_headers` - Render `pin.js` and helper functions
 
 This tag should be called inside the `head` tag of your HTML page. It will render multiple `<script>` tags: one to load `pin.js`, the other to define a function that will run on submit of the form to load the card token from the Pin API.
 
 ```html
-    {% load pin_payments_tags %}
+    {% load pin_payment_tags %}
     <html>
         <head>
             <title>My Payment Page</title>
             <script src='/path/to/jquery.js'></script>
-            {% pin_headers "test" %}
+            {% pin_header "test" %}
         </head>
         <body>
             <!-- page content -->
