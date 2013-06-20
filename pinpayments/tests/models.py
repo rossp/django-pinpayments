@@ -1,5 +1,6 @@
 import json
 from django.conf import settings
+from django.contrib.auth.models import User
 from django.test import TestCase
 from django.test.utils import override_settings
 from mock import patch
@@ -31,9 +32,22 @@ class FakeResponse(Response):
         self.status_code = status_code
         self._content = content
 
-class ModelTests(TestCase):
+class CustomerTokenTests(TestCase):
+    # Need to override the setting so we can delete it, not sure why.
+    @override_settings(PIN_DEFAULT_ENVIRONMENT=None)
+    def test_default_environment(self):
+        # Unset PIN_DEFAULT_ENVIRONMENT to test that the environment defaults
+        # to 'test'.
+        del settings.PIN_DEFAULT_ENVIRONMENT
+        token = CustomerToken()
+        token.user = User.objects.create()
+        token.environment = None
+        token.save()
+        self.assertEqual(token.environment, 'test')
+
+class PinTransactionTests(TestCase):
     def setUp(self):
-        super(ModelTests, self).setUp()
+        super(PinTransactionTests, self).setUp()
         self.transaction = PinTransaction()
         self.transaction.card_token = '12345'
         self.transaction.ip_address = '127.0.0.1'
