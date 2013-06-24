@@ -1,4 +1,4 @@
-{% load i18n %}<fieldset>
+{% load i18n %}<fieldset id='pin_billing_address'>
     <legend>{% trans "Billing Address" %}</legend>
 
     <p>
@@ -28,12 +28,12 @@
     
     <p>
     <label for='address-country' class='required'>{% trans "Country" %}</label>
-    <input id='address-country' required>
+    <input id='address-country' required value='Australia'>
     </p>
 
 </fieldset>
 
-<fieldset>
+<fieldset id='pin_credit_card_details'>
     <legend>{% trans "Credit Card Details" %}</legend>
     
     <div class='errors' style='display:none'>
