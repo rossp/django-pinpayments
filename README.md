@@ -232,6 +232,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Changelog
 
+0.1.6 (June 11th, 2014)
+- Documentation update for CustomerToken.new_card_token
+
 0.1.5 (June 11th, 2014)
 - Support custom user models
 - Better error handling
