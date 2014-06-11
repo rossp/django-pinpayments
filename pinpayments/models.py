@@ -262,7 +262,7 @@ class PinTransaction(models.Model):
                     self.pin_response = 'Failure: %s' % r['messages'][0]['message']
             else:
                 self.pin_response = 'Failure: %s' % r['error_description']
-            self.transaction_token  = r['charge_token']
+            self.transaction_token  = r.get('charge_token', None)
         else:
             self.succeeded          = True
             self.transaction_token  = r['response']['token']
