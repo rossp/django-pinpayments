@@ -53,7 +53,7 @@ This setting, with at least one environment, is **required** for django-pinpayme
             'secret': 'tOAQeMsMaBrxejJHIqHJVIObUS',
             'host': 'api.pin.net.au',
         },
-        'live_project2' {
+        'live_project2': {
             'key': 'pk_ByNNmfJfsMywEIEa-aCteTR',
             'secret': 'CPslpGmoakWdPuxjtrfibZVLaS',
             'host': 'api.pin.net.au',
