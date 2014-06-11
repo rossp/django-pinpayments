@@ -55,6 +55,50 @@ class CustomerToken(models.Model):
             self.environment = getattr(settings, 'PIN_DEFAULT_ENVIRONMENT', 'test')
         super(CustomerToken, self).save(*args, **kwargs)
 
+
+    def new_card_token(self, card_token):
+        pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
+
+        if self.environment not in pin_config.keys():
+            raise ConfigError("Invalid environment '%s'" % self.environment)
+
+        pin_env = pin_config[self.environment]
+
+        (pin_secret, pin_host) = (pin_env.get('secret', None), pin_env.get('host', None))
+
+        if not (pin_secret and pin_host):
+            raise ConfigError("Environment '%s' does not have secret and host configured." % self.environment)
+
+        payload = {
+            'card_token': card_token,
+            }
+        
+        response = requests.put(
+            "https://%s/1/customers/%s" % (pin_host, self.token),
+            auth    = (pin_secret, ''), 
+            params  = payload,
+            headers = { 'content-type': 'application/json' },
+        )
+
+        try:
+            r = response.json()
+        except:
+            r = None
+
+        if r == None:
+            raise PinError('Error retrieving response')
+
+        else:
+            if r.has_key('error'):
+                raise PinError('Error returned from Pin API: %s' % r['error_description'])
+            else:
+                self.card_number = r['response']['card']['display_number']
+                self.card_type = r['response']['card']['scheme']
+                self.save()
+                return True
+
+        return False
+
     @classmethod
     def create_from_card_token(cls, card_token, user, environment=''):
         pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
