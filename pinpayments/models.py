@@ -1,6 +1,10 @@
 from django.db import models
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
+from django.utils import timezone
+from django.utils.timezone import get_default_timezone
+
+from datetime import datetime
 
 import requests
 
@@ -196,8 +200,10 @@ class PinTransaction(models.Model):
             raise PinError("Pin Environment '%s' does not exist" % self.environment)
 
         if not self.date:
-            from datetime import datetime
-            self.date = datetime.now()
+            now = datetime.now()
+            if settings.USE_TZ:
+                now = timezone.make_aware(now, get_default_timezone())
+            self.date = now
 
         super(PinTransaction, self).save(*args, **kwargs)
     
