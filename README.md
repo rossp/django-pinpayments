@@ -123,17 +123,17 @@ There's an assumption that you'll have your own "Order" table, with a 1:N or N:N
 To create a new Transaction in the view that receives the form submission, use the PinTransaction model along with some custom data.
 
 ```python
-    t = PinTransaction()
-    t.card_token = request.POST.get('card_token')
-    t.ip_address = request.POST.get('ip_address')
-    t.amount = 500 # Amount in dollars. Define with your own business logic.
-    t.currency = 'AUD' # Pin supports AUD and USD. Fees apply for currency conversion.
-    t.description = 'Payment for invoice #12508' # Define with your own business logic
-    t.email_address = request.user.email_address 
-    t.save()
+    transaction = PinTransaction()
+    transaction.card_token = request.POST.get('card_token')
+    transaction.ip_address = request.POST.get('ip_address')
+    transaction.amount = 500 # Amount in dollars. Define with your own business logic.
+    transaction.currency = 'AUD' # Pin supports AUD and USD. Fees apply for currency conversion.
+    transaction.description = 'Payment for invoice #12508' # Define with your own business logic
+    transaction.email_address = request.user.email_address 
+    transaction.save()
 
-    result = t.process_transaction() # Typically "Success" or an error message
-    if t.succeeded == True:
+    result = transaction.process_transaction() # Typically "Success" or an error message
+    if transaction.succeeded == True:
         return "We got the money!"
     else:
         return "No money today :( Error message: %s " % result
@@ -170,11 +170,22 @@ If you later want to charge this customer, just create a new `PinTransaction` fo
     )
     transaction.save()
     result = transaction.process_transaction()
-    if t.succeeded == True:
+    if transaction.succeeded == True:
         return "We got the money!"
     else:
         return "No money today :( Error message: %s " % result
-    )
+```
+
+When the customer changes their credit card, you should collect that new card via the existing form and JavaScript, and call the `new_card_token` method on their token.
+
+```python
+    # Get the first active token. Big assumption that we have one we can use.
+    customer = request.user.customertoken_set.filter(active=True)[0]
+    result = customer.new_card_token(request.POST.get('card_token')
+    if result == True:
+        return "Updated and ready to charge!"
+    else:
+        return "Unable to update card. Try again."
 ```
    
 Because you're keeping the `CustomerToken`, you can re-bill them as often as is necessary (within your legal rights and your agreement with the customer, obviously). 
@@ -218,3 +229,12 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+### Changelog
+
+0.1.5 (June 11th, 2014)
+- Support custom user models
+- Better error handling
+- Ability to change card token for a customer (rather than generating a new CustomerToken)
+- Timezone aware dates on Transactions
+- Store cardholder name on CustomerToken.
