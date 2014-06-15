@@ -4,7 +4,7 @@ from distutils.util import convert_path
 from fnmatch import fnmatchcase
 from setuptools import setup, find_packages
 
-version = '0.1.6'
+version = '0.1.7'
 
 # Provided as an attribute, so you can append to these instead
 # of replicating them:
@@ -131,6 +131,6 @@ setup(
     package_data=find_package_data("pinpayments", only_in_packages=False),
     include_package_data=True,
     zip_safe=False,
-    install_requires=['setuptools'],
+    install_requires=['setuptools','requests','django'],
 )
 
