@@ -7,6 +7,7 @@ from django.utils.timezone import get_default_timezone
 from datetime import datetime
 
 import requests
+from decimal import Decimal
 
 class ConfigError(Exception):
     def __init__(self, value):
@@ -168,7 +169,7 @@ class PinTransaction(models.Model):
     date = models.DateTimeField(_('Date'), db_index=True, help_text=_('Time this transaction was put in the database. May differ from the time that PIN reports the transaction.'))
     environment = models.CharField(max_length=25, db_index=True, blank=True, help_text=_('The name of the Pin environment to use, eg test or live.'))
     amount = models.DecimalField(_('Amount (Dollars)'), max_digits=10, decimal_places=2)
-    fees = models.DecimalField(_('Transaction Fees'), max_digits=10, decimal_places=2, default=0, help_text=_('Fees charged to you by Pin, for this transaction, in dollars'), blank=True, null=True)
+    fees = models.DecimalField(_('Transaction Fees'), max_digits=10, decimal_places=2, default=Decimal("0.00"), help_text=_('Fees charged to you by Pin, for this transaction, in dollars'), blank=True, null=True)
     description = models.TextField(_('Description'), blank=True, null=True, help_text=_('As provided when you initiated the transaction'))
     processed = models.BooleanField(_('Processed?'), default=False, help_text=_('Has this been sent to Pin yet?'))
     succeeded = models.BooleanField(_('Success?'), default=False, help_text=_('Was the transaction approved?'))
@@ -274,7 +275,7 @@ class PinTransaction(models.Model):
         else:
             self.succeeded          = True
             self.transaction_token  = r['response']['token']
-            self.fees               = r['response']['total_fees'] / 100.00
+            self.fees               = r['response']['total_fees'] / Decimal("100.00")
             self.pin_response       = r['response']['status_message']
             self.card_address1      = r['response']['card']['address_line1']
             self.card_address2      = r['response']['card']['address_line2']
