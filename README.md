@@ -170,7 +170,7 @@ If you later want to charge this customer, just create a new `PinTransaction` fo
     )
     transaction.save()
     result = transaction.process_transaction()
-    if transaction.succeeded == True:
+    if transaction.succeeded:
         return "We got the money!"
     else:
         return "No money today :( Error message: %s " % result
