@@ -1,10 +1,10 @@
 from django import template
-from pinpayments.models import PinTransaction
 from django.conf import settings
 
 register = template.Library()
 
-def pin_header(environment=''):
+
+def pin_header(context, environment=''):
     """
     pin_header - Renders the JavaScript required for Pin.js payments.
     This will also include the Pin.js file from pin.net.au.
@@ -33,9 +33,11 @@ def pin_header(environment=''):
             'pin_environment': environment,
             'pin_public_key': pin_key,
             'pin_host': pin_host,
+            'request': context,
             }
 
-def pin_form():
+
+def pin_form(context):
     """
     pin_form - renders a simple HTML form
     Should be inside existing <form class='pin'>...</form> tags.
@@ -43,8 +45,9 @@ def pin_form():
     from datetime import datetime
     current_year = datetime.now().year
     return {
-            'pin_cc_years': range(current_year, current_year + 15)
+            'pin_cc_years': range(current_year, current_year + 15),
+            'request': context,
             }
 
-register.inclusion_tag('pinpayments/pin_headers.html')(pin_header)
-register.inclusion_tag('pinpayments/pin_form.html')(pin_form)
+register.inclusion_tag('pinpayments/pin_headers.html', takes_context=True)(pin_header)
+register.inclusion_tag('pinpayments/pin_form.html', takes_context=True)(pin_form)
