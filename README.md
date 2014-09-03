@@ -133,7 +133,7 @@ To create a new Transaction in the view that receives the form submission, use t
     transaction.save()
 
     result = transaction.process_transaction() # Typically "Success" or an error message
-    if transaction.succeeded == True:
+    if transaction.succeeded:
         return "We got the money!"
     else:
         return "No money today :( Error message: %s " % result
@@ -170,7 +170,7 @@ If you later want to charge this customer, just create a new `PinTransaction` fo
     )
     transaction.save()
     result = transaction.process_transaction()
-    if transaction.succeeded == True:
+    if transaction.succeeded:
         return "We got the money!"
     else:
         return "No money today :( Error message: %s " % result
@@ -182,7 +182,7 @@ When the customer changes their credit card, you should collect that new card vi
     # Get the first active token. Big assumption that we have one we can use.
     customer = request.user.customertoken_set.filter(active=True)[0]
     result = customer.new_card_token(request.POST.get('card_token')
-    if result == True:
+    if result:
         return "Updated and ready to charge!"
     else:
         return "Unable to update card. Try again."

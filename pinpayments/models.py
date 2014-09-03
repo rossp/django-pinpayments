@@ -177,7 +177,7 @@ class PinTransaction(models.Model):
     transaction_token = models.CharField(_('Pin API Transaction Token'), max_length=100, blank=True, null=True, db_index=True, help_text=_('Unique ID from Pin for this transaction'))
     card_token = models.CharField(_('Pin API Card Token'), max_length=40, blank=True, null=True, help_text=_('Card token used for this transaction (Card API and Web Forms)'))
     customer_token = models.ForeignKey(CustomerToken, blank=True, null=True, help_text=_('Provided by Customer API'))
-    pin_response = models.CharField(_('API Response'), max_length=100, blank=True, null=True, help_text=_('Response text, usually Success!'))
+    pin_response = models.CharField(_('API Response'), max_length=255, blank=True, null=True, help_text=_('Response text, usually Success!'))
     ip_address = models.GenericIPAddressField(help_text=_('IP Address used for payment'))
     email_address = models.EmailField(_('E-Mail Address'), max_length=100, help_text=_('As passed to Pin.'))
     card_address1 = models.CharField(_('Cardholder Street Address'), max_length=100, blank=True, null=True, help_text=_('Address entered by customer to process this transaction'))
