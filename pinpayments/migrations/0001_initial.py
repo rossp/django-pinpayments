@@ -5,13 +5,23 @@ from south.v2 import SchemaMigration
 from django.db import models
 
 
+try:
+	from django.contrib.auth import get_user_model
+except ImportError: # django < 1.5
+	from django.contrib.auth.models import User
+else:
+	User = get_user_model()
+
+user_model = u'%s.%s' % (User._meta.app_label, User._meta.module_name)
+
+
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
         # Adding model 'CustomerToken'
         db.create_table(u'pinpayments_customertoken', (
             (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['auth.User'])),
+            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm[user_model])),
             ('environment', self.gf('django.db.models.fields.CharField')(db_index=True, max_length=25, blank=True)),
             ('token', self.gf('django.db.models.fields.CharField')(max_length=100)),
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
@@ -73,13 +83,13 @@ class Migration(SchemaMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '50'})
         },
-        u'auth.user': {
-            'Meta': {'object_name': 'User'},
+        user_model: {
+            'Meta': {'object_name': User.__name__, "db_table": "'%s'" % User._meta.db_table},
             'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
             'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
             'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Group']", 'symmetrical': 'False', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            User._meta.pk.column: ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
             'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
@@ -105,7 +115,7 @@ class Migration(SchemaMigration):
             'environment': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '25', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'token': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"})
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['%s']" % user_model})
         },
         u'pinpayments.pintransaction': {
             'Meta': {'ordering': "['-date']", 'object_name': 'PinTransaction'},
