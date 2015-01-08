@@ -412,3 +412,130 @@ class PinTransaction(models.Model):
         self.save()
 
         return self.pin_response
+
+
+@python_2_unicode_compatible
+class BankAccount(models.Model):
+    """ A representation of a bank account, as stored by Pin. """
+    token = models.CharField(
+        _('Pin API Bank account token'), max_length=40,
+        help_text="A bank account token provided by Pin"
+    )
+    bank_name = models.CharField(
+        _('Bank Name'), max_length=100,
+        help_text="The name of the bank at which this account is held"
+    )
+    branch = models.CharField(
+        _('Branch name'), max_length=100, blank=True,
+        help_text="The name of the branch at which this account is held"
+    )
+    name = models.CharField(
+        _('Recipient Name'), max_length=100,
+        help_text="The name of the bank account"
+    )
+    bsb = models.IntegerField(
+        _('BSB'), max_length=6,
+        help_text="The BSB (Bank State Branch) code of the bank account."
+    )
+    number = models.CharField(
+        _('BSB'), max_length=20,
+        help_text="The account number of the bank account"
+    )
+    environment = models.CharField(
+        max_length=25, db_index=True, blank=True,
+        help_text=_('The name of the Pin environment to use, eg test or live.')
+    )
+
+    def __str__(self):
+        return "{0}".format(self.token)
+
+
+@python_2_unicode_compatible
+class PinRecipient(models.Model):
+    """
+    A token-based method for transferring funds via Pin
+    """
+    token = models.CharField(
+        _('Pin API recipient token'), max_length=40,
+        help_text="A recipient token provided by Pin"
+    )
+    email = models.EmailField(
+        _('Email Address'), max_length=100, help_text=_('As passed to Pin.')
+    )
+    name = models.CharField(
+        _('Recipient Name'), max_length=100, blank=True, null=True,
+        help_text="Optional. The name by which the recipient is referenced"
+    )
+    created = models.DateTimeField(_("Time created"), auto_now_add=True)
+    bank_account = models.ForeignKey(
+        BankAccount, verbose_name=_("The bank account of this recipient"),
+        blank=True, null=True
+    )
+    environment = models.CharField(
+        max_length=25, db_index=True, blank=True,
+        help_text=_('The name of the Pin environment to use, eg test or live.')
+    )
+
+    def __str__(self):
+        return "{0}".format(self.token)
+
+    @classmethod
+    def create_with_bank_account(cls, email, account_name, bsb, number, name="", env='test'):
+        """ Creates a new recipient from a provided token """
+        pin_env = getattr(settings, 'PIN_ENVIRONMENTS', {})[env]
+        (pin_secret, pin_host) = (pin_env.get('secret', None), pin_env.get('host', None))
+        if not (pin_secret and pin_host):
+            raise ConfigError(
+                "Environment '{0}' does not have "
+                "secret and host configured.".format(env)
+            )
+
+        payload = {
+            'email': email,
+            'name': name,
+            'bank_account[name]': account_name,
+            'bank_account[bsb]': bsb,
+            'bank_account[number]': number
+        }
+
+        raw_response = requests.post(
+            "https://{0}/1/recipients".format(pin_host),
+            auth=(pin_secret, ''),
+            params=payload,
+            headers={'content-type': 'application/json'},
+        )
+
+        try:
+            response = raw_response.json()
+        except AttributeError:
+            response = None
+
+        if response is None:
+            raise PinError('Error retrieving response')
+
+        if 'error_description' in response.keys():
+            raise PinError(
+                'Error returned from Pin API: {0}'.format(
+                    response['error_description']
+                )
+            )
+
+        bank_account = BankAccount()
+        bank_account.bank_name = response['response']['bank_account']['bank_name']
+        bank_account.branch = response['response']['bank_account']['branch']
+        bank_account.bsb = response['response']['bank_account']['bsb']
+        bank_account.name = response['response']['bank_account']['name']
+        bank_account.number = response['response']['bank_account']['number']
+        bank_account.token = response['response']['bank_account']['token']
+        bank_account.environment = env
+        bank_account.save()
+
+        new_recipient = PinRecipient()
+        new_recipient.token = response['response']['token']
+        new_recipient.email = response['response']['email']
+        new_recipient.name = response['response']['name']
+        new_recipient.bank_account = bank_account
+        new_recipient.environment = env
+        new_recipient.save()
+
+        return new_recipient
