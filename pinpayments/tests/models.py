@@ -1,3 +1,4 @@
+""" Ensure that the models work as intended """
 import json
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -26,18 +27,22 @@ ENV_MISSING_HOST = {
     },
 }
 
+
 class FakeResponse(Response):
     def __init__(self, status_code, content):
         super(FakeResponse, self).__init__()
         self.status_code = status_code
         self._content = content
 
+
 class CustomerTokenTests(TestCase):
     # Need to override the setting so we can delete it, not sure why.
     @override_settings(PIN_DEFAULT_ENVIRONMENT=None)
     def test_default_environment(self):
-        # Unset PIN_DEFAULT_ENVIRONMENT to test that the environment defaults
-        # to 'test'.
+        """
+        Unset PIN_DEFAULT_ENVIRONMENT to test that the environment defaults
+        to 'test'.
+        """
         del settings.PIN_DEFAULT_ENVIRONMENT
         token = CustomerToken()
         token.user = User.objects.create()
@@ -45,8 +50,11 @@ class CustomerTokenTests(TestCase):
         token.save()
         self.assertEqual(token.environment, 'test')
 
+
 class CreateFromCardTokenTests(TestCase):
+    """ Test the creation of customer tokens from card tokens """
     def setUp(self):
+        """ Common setup for methods """
         super(CreateFromCardTokenTests, self).setUp()
         self.user = User.objects.create()
         self.response_data = json.dumps({
@@ -58,12 +66,16 @@ class CreateFromCardTokenTests(TestCase):
                     'token': '54321',
                     'display_number': 'XXXX-XXXX-XXXX-0000',
                     'scheme': 'master',
+                    'expiry_month': 6,
+                    'expiry_year': 2017,
+                    'name': 'Roland Robot',
                     'address_line1': '42 Sevenoaks St',
                     'address_line2': None,
                     'address_city': 'Lathlain',
                     'address_postcode': '6454',
                     'address_state': 'WA',
-                    'address_country': 'Australia'
+                    'address_country': 'Australia',
+                    'primary': None,
                 }
             }
         })
@@ -75,6 +87,7 @@ class CreateFromCardTokenTests(TestCase):
 
     @patch('requests.post')
     def test_default_environment(self, mock_request):
+        """ return a default environment """
         mock_request.return_value = FakeResponse(200, self.response_data)
         token = CustomerToken.create_from_card_token('1234', self.user)
         self.assertEqual(token.environment, 'test')
@@ -82,46 +95,58 @@ class CreateFromCardTokenTests(TestCase):
     @override_settings(PIN_ENVIRONMENTS={})
     @patch('requests.post')
     def test_valid_environment(self, mock_request):
+        """ Check errors are raised with no environments """
         mock_request.return_value = FakeResponse(200, self.response_data)
         with self.assertRaises(ConfigError):
-            CustomerToken.create_from_card_token('1234', self.user,
-                environment='test')
+            CustomerToken.create_from_card_token(
+                '1234', self.user, environment='test'
+            )
 
     @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_SECRET)
     @patch('requests.post')
     def test_secret_set(self, mock_request):
+        """ Check errors are raised when the secret is not set """
         mock_request.return_value = FakeResponse(200, self.response_data)
         with self.assertRaises(ConfigError):
-            CustomerToken.create_from_card_token('1234', self.user,
-                environment='test')
+            CustomerToken.create_from_card_token(
+                '1234', self.user, environment='test'
+            )
 
     @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_HOST)
     @patch('requests.post')
     def test_host_set(self, mock_request):
+        """ Check errors are raised when the host is not set """
         mock_request.return_value = FakeResponse(200, self.response_data)
         with self.assertRaises(ConfigError):
-            CustomerToken.create_from_card_token('1234', self.user,
-                environment='test')
+            CustomerToken.create_from_card_token(
+                '1234', self.user, environment='test'
+            )
 
     @patch('requests.post')
     def test_response_not_json(self, mock_request):
+        """ Validate non-json response """
         mock_request.return_value = FakeResponse(200, '')
         with self.assertRaises(PinError):
-            CustomerToken.create_from_card_token('1234', self.user,
-                environment='test')
+            CustomerToken.create_from_card_token(
+                '1234', self.user, environment='test'
+            )
 
     @patch('requests.post')
     def test_response_error(self, mock_request):
+        """ Validate generic error response """
         mock_request.return_value = FakeResponse(200, self.response_error)
         with self.assertRaises(PinError):
-            CustomerToken.create_from_card_token('1234', self.user,
-                environment='test')
+            CustomerToken.create_from_card_token(
+                '1234', self.user, environment='test'
+            )
 
     @patch('requests.post')
     def test_response_success(self, mock_request):
+        """ Validate successful response """
         mock_request.return_value = FakeResponse(200, self.response_data)
-        customer = CustomerToken.create_from_card_token('1234', self.user,
-            environment='test')
+        customer = CustomerToken.create_from_card_token(
+            '1234', self.user, environment='test'
+        )
         self.assertIsInstance(customer, CustomerToken)
         self.assertEqual(customer.user, self.user)
         self.assertEqual(customer.token, '1234')
@@ -129,8 +154,11 @@ class CreateFromCardTokenTests(TestCase):
         self.assertEqual(customer.card_number, 'XXXX-XXXX-XXXX-0000')
         self.assertEqual(customer.card_type, 'master')
 
+
 class PinTransactionTests(TestCase):
+    """ Transaction construction/init related tests """
     def setUp(self):
+        """ Common setup for methods """
         super(PinTransactionTests, self).setUp()
         self.transaction = PinTransaction()
         self.transaction.card_token = '12345'
@@ -143,25 +171,37 @@ class PinTransactionTests(TestCase):
     # Need to override the setting so we can delete it, not sure why.
     @override_settings(PIN_DEFAULT_ENVIRONMENT=None)
     def test_save_defaults(self):
-        # Unset PIN_DEFAULT_ENVIRONMENT to test that the environment defaults
-        # to 'test'.
+        """
+        Unset PIN_DEFAULT_ENVIRONMENT to test that the environment defaults
+        to 'test'.
+        """
         del settings.PIN_DEFAULT_ENVIRONMENT
         self.transaction.environment = None
         self.transaction.save()
         self.assertEqual(self.transaction.environment, 'test')
         self.assertTrue(self.transaction.date)
 
-    def test_save_card_or_customer_token(self):
+    def test_save_notokens(self):
+        """
+        Check that an error is thrown if neither card nor customer token
+        are provided to the transaction
+        """
         self.transaction.card_token = None
         self.transaction.customer_token = None
         self.assertRaises(PinError, self.transaction.save)
 
     def test_valid_environment(self):
+        """
+        Check that errors are thrown when a fake environment is requested
+        """
         self.transaction.environment = 'this should not exist'
         self.assertRaises(PinError, self.transaction.save)
 
+
 class ProcessTransactionsTests(TestCase):
+    """ Transaction processing related tests """
     def setUp(self):
+        """ Common setup for methods """
         super(ProcessTransactionsTests, self).setUp()
         self.transaction = PinTransaction()
         self.transaction.card_token = '12345'
@@ -188,12 +228,16 @@ class ProcessTransactionsTests(TestCase):
                     'token': 'card_nytGw7koRg23EEp9NTmz9w',
                     'display_number': 'XXXX-XXXX-XXXX-0000',
                     'scheme': 'master',
+                    'expiry_month': 6,
+                    'expiry_year': 2017,
+                    'name': 'Roland Robot',
                     'address_line1': '42 Sevenoaks St',
                     'address_line2': None,
                     'address_city': 'Lathlain',
                     'address_postcode': '6454',
                     'address_state': 'WA',
-                    'address_country': 'Australia'
+                    'address_country': 'Australia',
+                    'primary': None,
                 },
                 'transfer': None
             }
@@ -220,6 +264,7 @@ class ProcessTransactionsTests(TestCase):
 
     @patch('requests.post')
     def test_only_process_once(self, mock_request):
+        """ Check that transactions are processed exactly once """
         mock_request.return_value = FakeResponse(200, self.response_data)
 
         # Shouldn't be marked as processed before process_transaction is called
@@ -237,43 +282,53 @@ class ProcessTransactionsTests(TestCase):
     @override_settings(PIN_ENVIRONMENTS={})
     @patch('requests.post')
     def test_valid_environment(self, mock_request):
+        """ Check that an error is thrown with no environment """
         mock_request.return_value = FakeResponse(200, self.response_data)
         self.assertRaises(PinError, self.transaction.process_transaction)
 
     @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_SECRET)
     @patch('requests.post')
     def test_secret_set(self, mock_request):
+        """ Check that an error is thrown with no secret """
         mock_request.return_value = FakeResponse(200, self.response_data)
         self.assertRaises(ConfigError, self.transaction.process_transaction)
 
     @override_settings(PIN_ENVIRONMENTS=ENV_MISSING_HOST)
     @patch('requests.post')
     def test_host_set(self, mock_request):
+        """ Check that an error is thrown with no host """
         mock_request.return_value = FakeResponse(200, self.response_data)
         self.assertRaises(ConfigError, self.transaction.process_transaction)
 
     @patch('requests.post')
     def test_response_not_json(self, mock_request):
+        """ Check that failure is returned for non-JSON responses """
         mock_request.return_value = FakeResponse(200, '')
         response = self.transaction.process_transaction()
         self.assertEqual(response, 'Failure.')
 
     @patch('requests.post')
-    def test_response_error_with_messages(self, mock_request):
+    def test_response_badparam(self, mock_request):
+        """ Check that a specific error is thrown for invalid parameters """
         mock_request.return_value = FakeResponse(200, self.response_error)
         response = self.transaction.process_transaction()
         self.assertEqual(response, 'Failure: Description can\'t be blank')
 
     @patch('requests.post')
-    def test_response_error_without_messages(self, mock_request):
-        mock_request.return_value = FakeResponse(200,
-            self.response_error_no_messages)
+    def test_response_noparam(self, mock_request):
+        """ Check that a specific error is thrown for missing parameters """
+        mock_request.return_value = FakeResponse(
+            200, self.response_error_no_messages
+        )
         response = self.transaction.process_transaction()
-        self.assertEqual(response,
-            'Failure: One or more parameters were missing or invalid.')
+        self.assertEqual(
+            response,
+            'Failure: One or more parameters were missing or invalid.'
+        )
 
     @patch('requests.post')
     def test_response_success(self, mock_request):
+        """ Check that the success response is correctly processed """
         mock_request.return_value = FakeResponse(200, self.response_data)
         response = self.transaction.process_transaction()
         self.assertEqual(response, 'Success!')
@@ -289,4 +344,3 @@ class ProcessTransactionsTests(TestCase):
         self.assertEqual(self.transaction.card_country, 'Australia')
         self.assertEqual(self.transaction.card_number, 'XXXX-XXXX-XXXX-0000')
         self.assertEqual(self.transaction.card_type, 'master')
-

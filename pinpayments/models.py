@@ -3,37 +3,21 @@ Models for interacting with Pin, and storing results
 """
 from __future__ import unicode_literals
 
+from datetime import datetime
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.timezone import get_default_timezone
 from django.utils.translation import ugettext_lazy as _
-
-from datetime import datetime
-
 import requests
-from decimal import Decimal
+from simplejson import JSONDecodeError
 
-
-class ConfigError(Exception):
-    """ Errors related to configuration """
-    def __init__(self, value):
-        self.value = value
-        super(ConfigError, self).__init__()
-
-    def __str__(self):
-        return repr(self.value)
-
-
-class PinError(Exception):
-    """ Errors related to Pin """
-    def __init__(self, value):
-        self.value = value
-        super(PinError, self).__init__()
-
-    def __str__(self):
-        return repr(self.value)
+from .exceptions import ConfigError, PinError
+from .objects import PinEnvironment
+from .utils import get_value
 
 
 if getattr(settings, 'PIN_ENVIRONMENTS', {}) == {}:
@@ -94,116 +78,36 @@ class CustomerToken(models.Model):
         super(CustomerToken, self).save(*args, **kwargs)
 
     def new_card_token(self, card_token):
-        """ Create a new card token """
-        pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
+        """ Placeholder to retain name and functionality of old method """
+        self.update_card(card_token)
+        return True
 
-        if self.environment not in pin_config.keys():
-            raise ConfigError("Invalid environment '{0}'".format(self.environment))
-
-        pin_env = pin_config[self.environment]
-
-        (pin_secret, pin_host) = (pin_env.get('secret', None), pin_env.get('host', None))
-
-        if not (pin_secret and pin_host):
-            raise ConfigError(
-                "Environment '{0}' does not have "
-                "secret and host configured.".format(self.environment)
-            )
-
-        payload = {
-            'card_token': card_token,
-            }
-
-        raw_response = requests.put(
-            "https://{0}/1/customers/{1}".format(pin_host, self.token),
-            auth=(pin_secret, ''),
-            params=payload,
-            headers={'content-type': 'application/json'},
-        )
-
-        try:
-            response = raw_response.json()
-        except AttributeError:
-            response = None
-
-        if response is None:
-            raise PinError('Error retrieving response')
-
-        else:
-            if 'error' in response.keys():
-                raise PinError(
-                    'Error returned from Pin API: {0}'.format(
-                        response['error_description']
-                    )
-                )
-            else:
-                self.card_number = response['response']['card']['display_number']
-                self.card_type = response['response']['card']['scheme']
-                self.card_name = response['response']['card']['name']
-                self.save()
-                return True
-
-        return False
+    def update_card(self, card_token):
+        """ Provide a card token to update the details for this customer """
+        pin_env = PinEnvironment(self.environment)
+        payload = {'card_token': card_token}
+        url_tail = "/customers/{1}".format(self.token)
+        data = pin_env.pin_put(url_tail, payload)[1]['response']
+        self.card_number = data['card']['display_number']
+        self.card_type = data['card']['scheme']
+        self.card_name = data['card']['name']
+        self.save()
 
     @classmethod
     def create_from_card_token(cls, card_token, user, environment=''):
         """ Create a customer token from a card token """
-        pin_config = getattr(settings, 'PIN_ENVIRONMENTS', {})
-
-        payload = {
-            'email': user.email,
-            'card_token': card_token,
-            }
-
-        if not environment:
-            environment = getattr(settings, 'PIN_DEFAULT_ENVIRONMENT', 'test')
-
-        if environment not in pin_config.keys():
-            raise ConfigError("Invalid environment '{0}'".format(environment))
-
-        pin_env = pin_config[environment]
-
-        (pin_secret, pin_host) = (pin_env.get('secret', None), pin_env.get('host', None))
-
-        if not (pin_secret and pin_host):
-            raise ConfigError(
-                "Environment '{0}' does not"
-                "have secret and host configured.".format(environment)
-            )
-
-        raw_response = requests.post(
-            "https://{0}/1/customers".format(pin_host),
-            auth=(pin_secret, ''),
-            params=payload,
-            headers={'content-type': 'application/json'},
+        pin_env = PinEnvironment(environment)
+        payload = {'email': user.email, 'card_token': card_token}
+        data = pin_env.pin_post("/customers", payload)[1]['response']
+        customer = CustomerToken.objects.create(
+            user=user,
+            token=data['token'],
+            environment=environment,
+            card_number=data['card']['display_number'],
+            card_type=data['card']['scheme'],
+            card_name=data['card']['name'],
         )
-
-        try:
-            response = raw_response.json()
-        except AttributeError:
-            response = None
-
-        if response is None:
-            raise PinError('Error retrieving response')
-
-        else:
-            if 'error' in response.keys():
-                raise PinError(
-                    'Error returned from Pin API: {0}'.format(
-                        response['error_description']
-                    )
-                )
-            else:
-                customer = CustomerToken()
-                customer.user = user
-                customer.token = response['response']['token']
-                customer.environment = environment
-                customer.card_number = response['response']['card']['display_number']
-                customer.card_type = response['response']['card']['scheme']
-                customer.card_name = response['response']['card']['name']
-                customer.save()
-
-                return customer
+        return customer
 
 
 @python_2_unicode_compatible
@@ -339,14 +243,11 @@ class PinTransaction(models.Model):
     def process_transaction(self):
         """ Send the data to Pin for processing """
         if self.processed:
-            """
-            can only attempt to process once.
-            """
-            return None
-
+            return None  # can only attempt to process once.
         self.processed = True
         self.save()
 
+        pin_env = PinEnvironment(self.environment)
         payload = {
             'email': self.email_address,
             'description': self.description,
@@ -359,58 +260,38 @@ class PinTransaction(models.Model):
         else:
             payload['customer_token'] = self.customer_token.token
 
-        pin_env = getattr(settings, 'PIN_ENVIRONMENTS', {})[self.environment]
+        response, response_json = pin_env.pin_post('/charges', payload, True)
+        self.pin_response_text = response.text
 
-        (pin_secret, pin_host) = (pin_env.get('secret', None), pin_env.get('host', None))
-
-        if not (pin_secret and pin_host):
-            raise ConfigError(
-                "Environment '{0}' does not have "
-                "secret and host configured.".format(self.environment)
-            )
-
-        raw_response = requests.post(
-            "https://{0}/1/charges".format(pin_host),
-            auth=(pin_secret, ''),
-            params=payload,
-            headers={'content-type': 'application/json'},
-        )
-
-        try:
-            response = raw_response.json()
-        except AttributeError:
-            response = None
-
-        self.pin_response_text = raw_response.text,
-
-        if response is None:
+        if response_json is None:
             self.pin_response = 'Failure.'
-        elif 'error' in response.keys():
-            if 'messages' in response.keys():
-                if 'message' in response['messages'][0].keys():
+        elif 'error' in response_json.keys():
+            if 'messages' in response_json.keys():
+                if 'message' in response_json['messages'][0].keys():
                     self.pin_response = 'Failure: {0}'.format(
-                        response['messages'][0]['message']
+                        response_json['messages'][0]['message']
                     )
             else:
                 self.pin_response = 'Failure: {0}'.format(
-                    response['error_description']
+                    response_json['error_description']
                 )
-            self.transaction_token = response.get('charge_token', None)
+            self.transaction_token = response_json.get('charge_token', None)
         else:
+            data = response_json['response']
             self.succeeded = True
-            self.transaction_token = response['response']['token']
-            self.fees = response['response']['total_fees'] / Decimal("100.00")
-            self.pin_response = response['response']['status_message']
-            self.card_address1 = response['response']['card']['address_line1']
-            self.card_address2 = response['response']['card']['address_line2']
-            self.card_city = response['response']['card']['address_city']
-            self.card_state = response['response']['card']['address_state']
-            self.card_postcode = response['response']['card']['address_postcode']
-            self.card_country = response['response']['card']['address_country']
-            self.card_number = response['response']['card']['display_number']
-            self.card_type = response['response']['card']['scheme']
-        self.save()
+            self.transaction_token = data['token']
+            self.fees = data['total_fees'] / Decimal("100.00")
+            self.pin_response = data['status_message']
+            self.card_address1 = data['card']['address_line1']
+            self.card_address2 = data['card']['address_line2']
+            self.card_city = data['card']['address_city']
+            self.card_state = data['card']['address_state']
+            self.card_postcode = data['card']['address_postcode']
+            self.card_country = data['card']['address_country']
+            self.card_number = data['card']['display_number']
+            self.card_type = data['card']['scheme']
 
+        self.save()
         return self.pin_response
 
 
@@ -418,28 +299,28 @@ class PinTransaction(models.Model):
 class BankAccount(models.Model):
     """ A representation of a bank account, as stored by Pin. """
     token = models.CharField(
-        _('Pin API Bank account token'), max_length=40,
-        help_text="A bank account token provided by Pin"
+        _('Pin API Bank account token'), max_length=40, db_index=True,
+        help_text=_("A bank account token provided by Pin")
     )
     bank_name = models.CharField(
         _('Bank Name'), max_length=100,
-        help_text="The name of the bank at which this account is held"
+        help_text=_("The name of the bank at which this account is held")
     )
     branch = models.CharField(
         _('Branch name'), max_length=100, blank=True,
-        help_text="The name of the branch at which this account is held"
+        help_text=_("The name of the branch at which this account is held")
     )
     name = models.CharField(
         _('Recipient Name'), max_length=100,
         help_text="The name of the bank account"
     )
     bsb = models.IntegerField(
-        _('BSB'), max_length=6,
-        help_text="The BSB (Bank State Branch) code of the bank account."
+        _('BSB'),
+        help_text=_("The BSB (Bank State Branch) code of the bank account.")
     )
     number = models.CharField(
         _('BSB'), max_length=20,
-        help_text="The account number of the bank account"
+        help_text=_("The account number of the bank account")
     )
     environment = models.CharField(
         max_length=25, db_index=True, blank=True,
@@ -453,23 +334,20 @@ class BankAccount(models.Model):
 @python_2_unicode_compatible
 class PinRecipient(models.Model):
     """
-    A token-based method for transferring funds via Pin
+    A recipient stored for the purpose of having funds transferred to them
     """
     token = models.CharField(
-        _('Pin API recipient token'), max_length=40,
-        help_text="A recipient token provided by Pin"
+        max_length=40, db_index=True,
+        help_text=_("A recipient token provided by Pin")
     )
-    email = models.EmailField(
-        _('Email Address'), max_length=100, help_text=_('As passed to Pin.')
-    )
+    email = models.EmailField(max_length=100, help_text=_('As passed to Pin.'))
     name = models.CharField(
-        _('Recipient Name'), max_length=100, blank=True, null=True,
-        help_text="Optional. The name by which the recipient is referenced"
+        max_length=100, blank=True, null=True,
+        help_text=_("Optional. The name by which the recipient is referenced")
     )
     created = models.DateTimeField(_("Time created"), auto_now_add=True)
     bank_account = models.ForeignKey(
-        BankAccount, verbose_name=_("The bank account of this recipient"),
-        blank=True, null=True
+        BankAccount, blank=True, null=True
     )
     environment = models.CharField(
         max_length=25, db_index=True, blank=True,
@@ -480,16 +358,9 @@ class PinRecipient(models.Model):
         return "{0}".format(self.token)
 
     @classmethod
-    def create_with_bank_account(cls, email, account_name, bsb, number, name="", env='test'):
-        """ Creates a new recipient from a provided token """
-        pin_env = getattr(settings, 'PIN_ENVIRONMENTS', {})[env]
-        (pin_secret, pin_host) = (pin_env.get('secret', None), pin_env.get('host', None))
-        if not (pin_secret and pin_host):
-            raise ConfigError(
-                "Environment '{0}' does not have "
-                "secret and host configured.".format(env)
-            )
-
+    def create_with_bank_account(cls, email, account_name, bsb, number, name=""):
+        """ Creates a new recipient from a provided bank account's details """
+        pin_env = PinEnvironment()
         payload = {
             'email': email,
             'name': name,
@@ -497,45 +368,88 @@ class PinRecipient(models.Model):
             'bank_account[bsb]': bsb,
             'bank_account[number]': number
         }
-
-        raw_response = requests.post(
-            "https://{0}/1/recipients".format(pin_host),
-            auth=(pin_secret, ''),
-            params=payload,
-            headers={'content-type': 'application/json'},
+        data = pin_env.pin_post('/recipients', payload)[1]['response']
+        bank_account = BankAccount.objects.create(
+            bank_name=data['bank_account']['bank_name'],
+            branch=data['bank_account']['branch'],
+            bsb=data['bank_account']['bsb'],
+            name=data['bank_account']['name'],
+            number=data['bank_account']['number'],
+            token=data['bank_account']['token'],
+            environment=pin_env.name,
         )
-
-        try:
-            response = raw_response.json()
-        except AttributeError:
-            response = None
-
-        if response is None:
-            raise PinError('Error retrieving response')
-
-        if 'error_description' in response.keys():
-            raise PinError(
-                'Error returned from Pin API: {0}'.format(
-                    response['error_description']
-                )
-            )
-
-        bank_account = BankAccount()
-        bank_account.bank_name = response['response']['bank_account']['bank_name']
-        bank_account.branch = response['response']['bank_account']['branch']
-        bank_account.bsb = response['response']['bank_account']['bsb']
-        bank_account.name = response['response']['bank_account']['name']
-        bank_account.number = response['response']['bank_account']['number']
-        bank_account.token = response['response']['bank_account']['token']
-        bank_account.environment = env
-        bank_account.save()
-
-        new_recipient = PinRecipient()
-        new_recipient.token = response['response']['token']
-        new_recipient.email = response['response']['email']
-        new_recipient.name = response['response']['name']
-        new_recipient.bank_account = bank_account
-        new_recipient.environment = env
-        new_recipient.save()
-
+        new_recipient = cls.objects.create(
+            token=data['token'],
+            email=data['email'],
+            name=data['name'],
+            bank_account=bank_account,
+            environment=pin_env.name,
+        )
         return new_recipient
+
+
+@python_2_unicode_compatible
+class PinTransfer(models.Model):
+    """
+    A transfer from a PinEnvironment to a PinRecipient
+    """
+    transfer_token = models.CharField(
+        _('Pin API Transfer Token'), max_length=100, blank=True, null=True,
+        db_index=True, help_text=_('Unique ID from Pin for this transfer')
+    )
+    status = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text=_("Status of transfer at time of saving")
+    )
+    currency = models.CharField(
+        max_length=10, help_text=_("currency of transfer")
+    )
+    description = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text=_("Description as shown on statement")
+    )
+    amount = models.IntegerField(help_text=_(
+        "Transfer amount, in the base unit of the "
+        "currency (e.g.: cents for AUD, yen for JPY)"
+    ))
+    recipient = models.ForeignKey(PinRecipient, blank=True, null=True)
+    created = models.DateTimeField(auto_now_add=True)
+    pin_response_text = models.TextField(
+        _('Complete API Response'), blank=True, null=True,
+        help_text=_('The full JSON response from the Pin API')
+    )
+
+    def __str__(self):
+        return "{0}".format(self.transfer_token)
+
+    @property
+    def value(self):
+        """
+        Returns the value of the transfer in the representation of the
+        currency it is in, without symbols
+        That is, 1000 cents as 10.00, 1000 yen as 1000
+        """
+        return get_value(self.amount, self.currency)
+
+    @classmethod
+    def send_new(cls, amount, description, recipient, currency="AUD"):
+        """ Creates a transfer by sending it to Pin """
+        pin_env = PinEnvironment()
+        payload = {
+            'amount': amount,
+            'description': description,
+            'recipient': recipient.token,
+            'currency': currency,
+        }
+        response, response_json = pin_env.pin_post('/transfers', payload)
+        data = response_json['response']
+        new_transfer = PinTransfer.objects.create(
+            transfer_token=data['token'],
+            status=data['status'],
+            currency=data['currency'],
+            description=data['description'],
+            amount=data['amount'],
+            recipient=recipient,
+            pin_response_text=response.text,
+        )
+        return new_transfer

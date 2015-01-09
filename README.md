@@ -31,13 +31,13 @@ The provided Card tokens can also be used to create [Customer tokens](https://pi
 * `PIN_ENVIRONMENTS` - a dictionary of dictionaries containing Pin API keys & secrets
 * `PIN_DEFAULT_ENVIRONMENT` - a pointer to the environment to be used at runtime, if no specific environment is requested.
 
-**Warning:** Make sure your settings do not end up in public source repositories, as they can be used to process payments in your name. 
+**Warning:** Make sure your settings do not end up in public source repositories, as they can be used to process payments in your name.
 
 #### `PIN_ENVIRONMENTS`
 
-Each environment must have the 'key' and 'secret' values. 
+Each environment must have the 'key' and 'secret' values.
 
-I highly recommend at least test & production, however you can also configure other key pairs if you have eg a separate Pin account for part of your website. Perhaps you have membership sales processed by one account, and merchandise by another. 
+I highly recommend at least test & production, however you can also configure other key pairs if you have eg a separate Pin account for part of your website. Perhaps you have membership sales processed by one account, and merchandise by another.
 
 This setting, with at least one environment, is **required** for django-pinpayments to function. There is no default.
 
@@ -99,7 +99,7 @@ To switch to your live API tokens, change `test` to `live`.
 
 #### `pin_form` - Render HTML form for Payment
 
-Use `pin_form` to render the payment form, which includes billing address and credit card details. Your fpage should already include a form tag, the `pin_headers` tag, and the `csrf_token`. 
+Use `pin_form` to render the payment form, which includes billing address and credit card details. Your fpage should already include a form tag, the `pin_headers` tag, and the `csrf_token`.
 
 ```html
     <form method='post' action='.' class='pin'>
@@ -129,7 +129,7 @@ To create a new Transaction in the view that receives the form submission, use t
     transaction.amount = 500 # Amount in dollars. Define with your own business logic.
     transaction.currency = 'AUD' # Pin supports AUD and USD. Fees apply for currency conversion.
     transaction.description = 'Payment for invoice #12508' # Define with your own business logic
-    transaction.email_address = request.user.email_address 
+    transaction.email_address = request.user.email_address
     transaction.save()
 
     result = transaction.process_transaction() # Typically "Success" or an error message
@@ -187,19 +187,66 @@ When the customer changes their credit card, you should collect that new card vi
     else:
         return "Unable to update card. Try again."
 ```
-   
-Because you're keeping the `CustomerToken`, you can re-bill them as often as is necessary (within your legal rights and your agreement with the customer, obviously). 
+
+Because you're keeping the `CustomerToken`, you can re-bill them as often as is necessary (within your legal rights and your agreement with the customer, obviously).
+
+### Models related to Payouts
+
+#### `pinpayments.BankAccount`
+
+This model has limited functionality but as a storage tool.
+It houses the bank account information returned from Pin.net.au on the creation
+of bank account tokens.
+
+#### `pinpayments.PinRecipient`
+
+This model contains references to recipients, which are the objects that can
+be sent money.
+They can be saved using data returned from Pin, and there exists also helper
+functionality for generating the Pin requests from raw bank account details.
+
+```python
+    # Given an accountholder name, BSB and account number:
+    recipient = PinRecipient.objects.create_with_bank_account(
+        request.user.email,   # required, string
+        account_holder_name,  # required, string
+        account_bsb,          # required, string or int
+        account_number,       # required, string or int
+        account_alias,        # optional, string
+    )
+```
+
+#### `pinpayments.PinTransfer`
+
+This is the equivalent of transaction, for when the mony is coming out of your
+pin account, and into a recipient's bank account.
+
+Note that, unlike Transactions, Transfers is using the same currency unit as Pin
+This means the base unit of the currency (cents instead of dollars, pence instead
+of pounds, yen for JPY)
+
+```python
+    # Given a PinRecipient with a valid token:
+    transfer = PinTransfer(
+        transfer_value,  # required, string or int
+        description,     # required, string
+        pin_recipient,   # required, PinRecipient
+        currency,        # optional. AUD if not provided
+    )
+```
+
 
 ### Warnings
 
 The contributors and I are not responsible for anything this code does to your customers, your bank account, or your Pin account. We are providing it in good faith and provide no warranties.  The above code samples are just that: Samples. Your production code should be full of testing and other ways to deal with the many errors and problems that arise from processing payments online.
 
-All use is at your own risk. 
+All use is at your own risk.
 
 ### Contributors
 
 * Ross Poulton https://github.com/rossp
 * Huw https://github.com/huwshimi
+* Chris Darko https://github.com/woegjiub
 
 ### Contributing
 
@@ -211,13 +258,13 @@ Copyright (c) 2013, Ross Poulton <ross@rossp.org>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met: 
+modification, are permitted provided that the following conditions are met:
 
 1. Redistributions of source code must retain the above copyright notice, this
-   list of conditions and the following disclaimer. 
+   list of conditions and the following disclaimer.
 2. Redistributions in binary form must reproduce the above copyright notice,
    this list of conditions and the following disclaimer in the documentation
-   and/or other materials provided with the distribution. 
+   and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
 ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
@@ -231,6 +278,9 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Changelog
+
+1.0.9 (Jan 09, 2014)
+- Initial support for Payments
 
 0.1.6 (June 11th, 2014)
 - Documentation update for CustomerToken.new_card_token
