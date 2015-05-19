@@ -4,7 +4,7 @@ from distutils.util import convert_path
 from fnmatch import fnmatchcase
 from setuptools import setup, find_packages
 
-version = '1.0.10'
+version = '1.1.0'
 
 # Provided as an attribute, so you can append to these instead
 # of replicating them:
@@ -96,13 +96,12 @@ def find_package_data(
     return out
 
 
-
 LONG_DESCRIPTION = """
 ==================
 django-pinpayments
 ==================
 
-Helper libraries for using Pin Payments (pin.net.au) within 
+Helper libraries for using Pin Payments (pin.net.au) within
 your Django applications.
 """
 
@@ -122,7 +121,7 @@ setup(
         "Intended Audience :: Developers",
         "Development Status :: 3 - Alpha",
     ],
-    keywords=['django', 'payments', 'pinpayments',],
+    keywords=['django', 'payments', 'pinpayments'],
     author='Ross Poulton',
     author_email='ross@rossp.org',
     url='http://github.com/rossp/django-pinpayments',
@@ -131,6 +130,5 @@ setup(
     package_data=find_package_data("pinpayments", only_in_packages=False),
     include_package_data=True,
     zip_safe=False,
-    install_requires=['setuptools','requests','django'],
+    install_requires=['setuptools', 'requests', 'django'],
 )
-

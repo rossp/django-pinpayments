@@ -1,17 +1,24 @@
 """ Ensure that the models work as intended """
+
+from __future__ import absolute_import, unicode_literals
+
 import json
-from django.conf import settings
-from django.contrib.auth.models import User
-from django.test import TestCase
-from django.test.utils import override_settings
-from mock import patch
 from pinpayments.models import (
     ConfigError,
     CustomerToken,
     PinError,
     PinTransaction
-)
+, CardToken)
+from pinpayments.utils import get_user_model
+
+from django.conf import settings
+from django.test import TestCase
+from django.test.utils import override_settings
+from mock import patch
 from requests import Response
+
+
+User = get_user_model()
 
 ENV_MISSING_SECRET = {
     'test': {
@@ -49,6 +56,115 @@ class CustomerTokenTests(TestCase):
         token.environment = None
         token.save()
         self.assertEqual(token.environment, 'test')
+
+
+class CardTokenTests(TestCase):
+    """ Test the creation of card tokens in various ways"""
+    def setUp(self):
+        """ Common setup for methods """
+        super(CardTokenTests, self).setUp()
+        self.user = User.objects.create()
+        self.customer_card_token_dict = {
+            'response': {
+                'token': '1234',
+                'email': 'test@example.com',
+                'created_at': '2012-06-22T06:27:33Z',
+                'card': {
+                    'token': '54321',
+                    'display_number': 'XXXX-XXXX-XXXX-0000',
+                    'scheme': 'master',
+                    'expiry_month': 6,
+                    'expiry_year': 2017,
+                    'name': 'Roland Robot',
+                    'address_line1': '42 Sevenoaks St',
+                    'address_line2': None,
+                    'address_city': 'Lathlain',
+                    'address_postcode': '6454',
+                    'address_state': 'WA',
+                    'address_country': 'Australia',
+                    'primary': True,
+                }
+            }
+        }
+        # customer token and first card token response
+        self.customer_token_data = json.dumps(self.customer_card_token_dict)
+
+        # add second card token response
+        self.customer_card_token_2_dict = {'response': self.customer_card_token_dict['response']['card'].copy()}
+        self.customer_card_token_2_dict['response']['primary'] = False
+        self.customer_card_token_2_dict['response']['token'] = '987654321'
+        self.customer_card_token_2_dict['response']['display_number'] = 'XXXX-XXXX-XXXX-4321'
+        self.customer_card_token_2_data = json.dumps(self.customer_card_token_2_dict)
+
+        # change primary card token response
+        self.customer_put_card_token_dict = self.customer_card_token_dict.copy()  # grab initial cust response
+        self.customer_put_card_token_dict['response']['card'] = self.customer_card_token_dict['response'].copy()  # swap the 2nd card in
+        self.customer_put_card_token_dict['response']['card']['primary'] = True  # set to primary
+
+        self.customer_put_update_card_token_data = json.dumps(self.customer_put_card_token_dict)
+
+        self.response_error = json.dumps({
+            'error': 'invalid_resource',
+            'error_description':
+                'One or more parameters were missing or invalid.'
+        })
+
+    @patch('requests.post')
+    def test_primary_true(self, mock_request):
+        """ Validate successful response """
+        mock_request.return_value = FakeResponse(200, self.customer_token_data)
+        customer = CustomerToken.objects.create_from_card_token(
+            '1234', self.user, environment='test'
+        )
+
+        self.assertIsInstance(customer, CustomerToken)
+        self.assertEqual(customer.user, self.user)
+        self.assertEqual(customer.token, '1234')
+        self.assertEqual(customer.environment, 'test')
+        self.assertEqual(customer.primary_card.display_number, 'XXXX-XXXX-XXXX-0000')
+        self.assertEqual(customer.primary_card.scheme, 'master')
+        return customer
+
+    @patch('requests.put')
+    @patch('requests.post')
+    def test_multiple_cards(self, mock_request_post, mock_request_put):
+        """ Test mutiple cards """
+        mock_request_post.return_value = FakeResponse(200, self.customer_token_data)
+        customer = CustomerToken.objects.create_from_card_token(
+            '1234', self.user, environment='test'
+        )
+
+        mock_request_post.return_value = FakeResponse(200, self.customer_card_token_2_data)
+        card2 = customer.add_card_token('987654321')
+
+        self.assertIsInstance(card2, CardToken)
+
+        # cards test created
+        self.assertNotEqual(customer.primary_card, card2)
+        self.assertEqual(customer.cards.count(), 2)
+
+        # additional card value tests
+        self.assertEqual(card2.token, '987654321')
+        self.assertEqual(card2.display_number, 'XXXX-XXXX-XXXX-4321')
+        self.assertEqual(card2.scheme, 'master')
+
+        # customer value tests
+        self.assertEqual(customer.token, '1234')
+        self.assertEqual(customer.environment, 'test')
+        self.assertEqual(customer.primary_card.token, '54321')
+        self.assertEqual(customer.primary_card.display_number, 'XXXX-XXXX-XXXX-0000')
+        self.assertEqual(customer.primary_card.scheme, 'master')
+
+        # change primary card
+        mock_request_put.return_value = FakeResponse(200, self.customer_put_update_card_token_data)
+        old_primary_card = customer.primary_card
+        customer.update_primary_card(card2)
+
+        # changed primary card tests
+        old_primary_card = CardToken.objects.get(pk=old_primary_card.pk)
+        self.assertEqual(customer.primary_card, card2)
+        self.assertEqual(customer.cards.count(), 2)
+        self.assertEqual(old_primary_card.primary, False)
 
 
 class CreateFromCardTokenTests(TestCase):
@@ -151,8 +267,8 @@ class CreateFromCardTokenTests(TestCase):
         self.assertEqual(customer.user, self.user)
         self.assertEqual(customer.token, '1234')
         self.assertEqual(customer.environment, 'test')
-        self.assertEqual(customer.card_number, 'XXXX-XXXX-XXXX-0000')
-        self.assertEqual(customer.card_type, 'master')
+        self.assertEqual(customer.cards.all()[0].display_number, 'XXXX-XXXX-XXXX-0000')
+        self.assertEqual(customer.cards.all()[0].scheme, 'master')
 
 
 class PinTransactionTests(TestCase):

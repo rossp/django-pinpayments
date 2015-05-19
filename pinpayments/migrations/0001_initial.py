@@ -1,149 +1,116 @@
 # -*- coding: utf-8 -*-
-import datetime
-from south.db import db
-from south.v2 import SchemaMigration
-from django.db import models
+from __future__ import unicode_literals
+
+from django.db import models, migrations
+from django.conf import settings
+from decimal import Decimal
 
 
-try:
-	from django.contrib.auth import get_user_model
-except ImportError: # django < 1.5
-	from django.contrib.auth.models import User
-else:
-	User = get_user_model()
+class Migration(migrations.Migration):
 
-user_model = u'%s.%s' % (User._meta.app_label, User._meta.module_name)
+    dependencies = [
+        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+    ]
 
-
-class Migration(SchemaMigration):
-
-    def forwards(self, orm):
-        # Adding model 'CustomerToken'
-        db.create_table(u'pinpayments_customertoken', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('user', self.gf('django.db.models.fields.related.ForeignKey')(to=orm[user_model])),
-            ('environment', self.gf('django.db.models.fields.CharField')(db_index=True, max_length=25, blank=True)),
-            ('token', self.gf('django.db.models.fields.CharField')(max_length=100)),
-            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-            ('active', self.gf('django.db.models.fields.BooleanField')(default=True)),
-            ('card_type', self.gf('django.db.models.fields.CharField')(max_length=20, null=True, blank=True)),
-            ('card_number', self.gf('django.db.models.fields.CharField')(max_length=100, null=True, blank=True)),
-        ))
-        db.send_create_signal(u'pinpayments', ['CustomerToken'])
-
-        # Adding model 'PinTransaction'
-        db.create_table(u'pinpayments_pintransaction', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('date', self.gf('django.db.models.fields.DateTimeField')(db_index=True)),
-            ('environment', self.gf('django.db.models.fields.CharField')(db_index=True, max_length=25, blank=True)),
-            ('amount', self.gf('django.db.models.fields.DecimalField')(max_digits=10, decimal_places=2)),
-            ('fees', self.gf('django.db.models.fields.DecimalField')(default=0, null=True, max_digits=10, decimal_places=2, blank=True)),
-            ('description', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-            ('processed', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('succeeded', self.gf('django.db.models.fields.BooleanField')(default=False)),
-            ('currency', self.gf('django.db.models.fields.CharField')(default='AUD', max_length=100)),
-            ('transaction_token', self.gf('django.db.models.fields.CharField')(db_index=True, max_length=100, null=True, blank=True)),
-            ('card_token', self.gf('django.db.models.fields.CharField')(max_length=40, null=True, blank=True)),
-            ('customer_token', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['pinpayments.CustomerToken'], null=True, blank=True)),
-            ('pin_response', self.gf('django.db.models.fields.CharField')(max_length=100, null=True, blank=True)),
-            ('ip_address', self.gf('django.db.models.fields.GenericIPAddressField')(max_length=39)),
-            ('email_address', self.gf('django.db.models.fields.EmailField')(max_length=100)),
-            ('card_address1', self.gf('django.db.models.fields.CharField')(max_length=100, null=True, blank=True)),
-            ('card_address2', self.gf('django.db.models.fields.CharField')(max_length=100, null=True, blank=True)),
-            ('card_city', self.gf('django.db.models.fields.CharField')(max_length=100, null=True, blank=True)),
-            ('card_state', self.gf('django.db.models.fields.CharField')(max_length=100, null=True, blank=True)),
-            ('card_postcode', self.gf('django.db.models.fields.CharField')(max_length=100, null=True, blank=True)),
-            ('card_country', self.gf('django.db.models.fields.CharField')(max_length=100, null=True, blank=True)),
-            ('card_number', self.gf('django.db.models.fields.CharField')(max_length=100, null=True, blank=True)),
-            ('card_type', self.gf('django.db.models.fields.CharField')(max_length=20, null=True, blank=True)),
-            ('pin_response_text', self.gf('django.db.models.fields.TextField')(null=True, blank=True)),
-        ))
-        db.send_create_signal(u'pinpayments', ['PinTransaction'])
-
-
-    def backwards(self, orm):
-        # Deleting model 'CustomerToken'
-        db.delete_table(u'pinpayments_customertoken')
-
-        # Deleting model 'PinTransaction'
-        db.delete_table(u'pinpayments_pintransaction')
-
-
-    models = {
-        u'auth.group': {
-            'Meta': {'object_name': 'Group'},
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '80'}),
-            'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'})
-        },
-        u'auth.permission': {
-            'Meta': {'ordering': "(u'content_type__app_label', u'content_type__model', u'codename')", 'unique_together': "((u'content_type', u'codename'),)", 'object_name': 'Permission'},
-            'codename': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'})
-        },
-        user_model: {
-            'Meta': {'object_name': User.__name__, "db_table": "'%s'" % User._meta.db_table},
-            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
-            'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Group']", 'symmetrical': 'False', 'blank': 'True'}),
-            User._meta.pk.column: ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'}),
-            'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '30'})
-        },
-        u'contenttypes.contenttype': {
-            'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
-            'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
-        },
-        u'pinpayments.customertoken': {
-            'Meta': {'object_name': 'CustomerToken'},
-            'active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'card_number': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'card_type': ('django.db.models.fields.CharField', [], {'max_length': '20', 'null': 'True', 'blank': 'True'}),
-            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'environment': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '25', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'token': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['%s']" % user_model})
-        },
-        u'pinpayments.pintransaction': {
-            'Meta': {'ordering': "['-date']", 'object_name': 'PinTransaction'},
-            'amount': ('django.db.models.fields.DecimalField', [], {'max_digits': '10', 'decimal_places': '2'}),
-            'card_address1': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'card_address2': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'card_city': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'card_country': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'card_number': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'card_postcode': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'card_state': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'card_token': ('django.db.models.fields.CharField', [], {'max_length': '40', 'null': 'True', 'blank': 'True'}),
-            'card_type': ('django.db.models.fields.CharField', [], {'max_length': '20', 'null': 'True', 'blank': 'True'}),
-            'currency': ('django.db.models.fields.CharField', [], {'default': "'AUD'", 'max_length': '100'}),
-            'customer_token': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['pinpayments.CustomerToken']", 'null': 'True', 'blank': 'True'}),
-            'date': ('django.db.models.fields.DateTimeField', [], {'db_index': 'True'}),
-            'description': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            'email_address': ('django.db.models.fields.EmailField', [], {'max_length': '100'}),
-            'environment': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '25', 'blank': 'True'}),
-            'fees': ('django.db.models.fields.DecimalField', [], {'default': '0', 'null': 'True', 'max_digits': '10', 'decimal_places': '2', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'ip_address': ('django.db.models.fields.GenericIPAddressField', [], {'max_length': '39'}),
-            'pin_response': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'pin_response_text': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            'processed': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'succeeded': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'transaction_token': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '100', 'null': 'True', 'blank': 'True'})
-        }
-    }
-
-    complete_apps = ['pinpayments']
+    operations = [
+        migrations.CreateModel(
+            name='BankAccount',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('token', models.CharField(help_text='A bank account token provided by Pin', max_length=40, verbose_name='Pin API Bank account token', db_index=True)),
+                ('bank_name', models.CharField(help_text='The name of the bank at which this account is held', max_length=100, verbose_name='Bank Name')),
+                ('branch', models.CharField(help_text='The name of the branch at which this account is held', max_length=100, verbose_name='Branch name', blank=True)),
+                ('name', models.CharField(help_text='The name of the bank account', max_length=100, verbose_name='Recipient Name')),
+                ('bsb', models.IntegerField(help_text='The BSB (Bank State Branch) code of the bank account.', verbose_name='BSB')),
+                ('number', models.CharField(help_text='The account number of the bank account', max_length=20, verbose_name='BSB')),
+                ('environment', models.CharField(help_text='The name of the Pin environment to use, eg test or live.', max_length=25, db_index=True, blank=True)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='CustomerToken',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('environment', models.CharField(help_text='The name of the Pin environment to use, eg test or live.', max_length=25, db_index=True, blank=True)),
+                ('token', models.CharField(help_text='Generated by Card API or Customers API', max_length=100, verbose_name='Token')),
+                ('created', models.DateTimeField(auto_now_add=True, verbose_name='Created')),
+                ('active', models.BooleanField(default=True, verbose_name='Active')),
+                ('card_type', models.CharField(choices=[('master', 'Mastercard'), ('visa', 'Visa')], max_length=20, blank=True, help_text='Determined automatically by Pin', null=True, verbose_name='Card Type')),
+                ('card_number', models.CharField(help_text='Cleansed by Pin API', max_length=100, null=True, verbose_name='Card Number', blank=True)),
+                ('card_name', models.CharField(max_length=100, null=True, verbose_name='Name on Card', blank=True)),
+                ('user', models.ForeignKey(to=settings.AUTH_USER_MODEL)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='PinRecipient',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('token', models.CharField(help_text='A recipient token provided by Pin', max_length=40, db_index=True)),
+                ('email', models.EmailField(help_text='As passed to Pin.', max_length=100)),
+                ('name', models.CharField(help_text='Optional. The name by which the recipient is referenced', max_length=100, null=True, blank=True)),
+                ('created', models.DateTimeField(auto_now_add=True, verbose_name='Time created')),
+                ('environment', models.CharField(help_text='The name of the Pin environment to use, eg test or live.', max_length=25, db_index=True, blank=True)),
+                ('bank_account', models.ForeignKey(blank=True, to='pinpayments.BankAccount', null=True)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='PinTransaction',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('date', models.DateTimeField(help_text='Time this transaction was put in the database. May differ from the time that PIN reports the transaction.', verbose_name='Date', db_index=True)),
+                ('environment', models.CharField(help_text='The name of the Pin environment to use, eg test or live.', max_length=25, db_index=True, blank=True)),
+                ('amount', models.DecimalField(verbose_name='Amount (Dollars)', max_digits=10, decimal_places=2)),
+                ('fees', models.DecimalField(decimal_places=2, default=Decimal('0.00'), max_digits=10, blank=True, help_text='Fees charged to you by Pin, for this transaction, in dollars', null=True, verbose_name='Transaction Fees')),
+                ('description', models.TextField(help_text='As provided when you initiated the transaction', null=True, verbose_name='Description', blank=True)),
+                ('processed', models.BooleanField(default=False, help_text='Has this been sent to Pin yet?', verbose_name='Processed?')),
+                ('succeeded', models.BooleanField(default=False, help_text='Was the transaction approved?', verbose_name='Success?')),
+                ('currency', models.CharField(default='AUD', help_text='Currency transaction was processed in', max_length=100, verbose_name='Currency')),
+                ('transaction_token', models.CharField(max_length=100, blank=True, help_text='Unique ID from Pin for this transaction', null=True, verbose_name='Pin API Transaction Token', db_index=True)),
+                ('card_token', models.CharField(help_text='Card token used for this transaction (Card API and Web Forms)', max_length=40, null=True, verbose_name='Pin API Card Token', blank=True)),
+                ('pin_response', models.CharField(help_text='Response text, usually Success!', max_length=255, null=True, verbose_name='API Response', blank=True)),
+                ('ip_address', models.GenericIPAddressField(help_text='IP Address used for payment')),
+                ('email_address', models.EmailField(help_text='As passed to Pin.', max_length=100, verbose_name='E-Mail Address')),
+                ('card_address1', models.CharField(help_text='Address entered by customer to process this transaction', max_length=100, null=True, verbose_name='Cardholder Street Address', blank=True)),
+                ('card_address2', models.CharField(max_length=100, null=True, verbose_name='Cardholder Street Address Line 2', blank=True)),
+                ('card_city', models.CharField(max_length=100, null=True, verbose_name='Cardholder City', blank=True)),
+                ('card_state', models.CharField(max_length=100, null=True, verbose_name='Cardholder State', blank=True)),
+                ('card_postcode', models.CharField(max_length=100, null=True, verbose_name='Cardholder Postal / ZIP Code', blank=True)),
+                ('card_country', models.CharField(max_length=100, null=True, verbose_name='Cardholder Country', blank=True)),
+                ('card_number', models.CharField(help_text='Cleansed by Pin API', max_length=100, null=True, verbose_name='Card Number', blank=True)),
+                ('card_type', models.CharField(choices=[('master', 'Mastercard'), ('visa', 'Visa')], max_length=20, blank=True, help_text='Determined automatically by Pin', null=True, verbose_name='Card Type')),
+                ('pin_response_text', models.TextField(help_text='The full JSON response from the Pin API', null=True, verbose_name='Complete API Response', blank=True)),
+                ('customer_token', models.ForeignKey(blank=True, to='pinpayments.CustomerToken', help_text='Provided by Customer API', null=True)),
+            ],
+            options={
+                'ordering': ['-date'],
+                'verbose_name': 'PIN.net.au Transaction',
+                'verbose_name_plural': 'PIN.net.au Transactions',
+            },
+            bases=(models.Model,),
+        ),
+        migrations.CreateModel(
+            name='PinTransfer',
+            fields=[
+                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('transfer_token', models.CharField(max_length=100, blank=True, help_text='Unique ID from Pin for this transfer', null=True, verbose_name='Pin API Transfer Token', db_index=True)),
+                ('status', models.CharField(help_text='Status of transfer at time of saving', max_length=100, null=True, blank=True)),
+                ('currency', models.CharField(help_text='currency of transfer', max_length=10)),
+                ('description', models.CharField(help_text='Description as shown on statement', max_length=100, null=True, blank=True)),
+                ('amount', models.IntegerField(help_text='Transfer amount, in the base unit of the currency (e.g.: cents for AUD, yen for JPY)')),
+                ('created', models.DateTimeField(auto_now_add=True)),
+                ('pin_response_text', models.TextField(help_text='The full JSON response from the Pin API', null=True, verbose_name='Complete API Response', blank=True)),
+                ('recipient', models.ForeignKey(blank=True, to='pinpayments.PinRecipient', null=True)),
+            ],
+            options={
+            },
+            bases=(models.Model,),
+        ),
+    ]

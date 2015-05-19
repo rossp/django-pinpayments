@@ -16,7 +16,7 @@ class PinEnvironment(object):
     """ Container for pin settings """
     def __init__(self, name="test", *args, **kwargs):
         """ Populate contents from Settings """
-        if name in ('test', ''):
+        if name in ('test', '', None):
             name = getattr(settings, 'PIN_DEFAULT_ENVIRONMENT', 'test')
 
         env_dict = {}
@@ -115,6 +115,15 @@ class PinEnvironment(object):
         Provide always_return=True to handle all errors yourself
         """
         return self._pin_request('POST', url_tail, payload, always_return)
+
+    def pin_delete(self, url_tail, payload, always_return=False):
+        """
+        Provide a relative URL to access the API for it via DELETE
+        Include the leading /
+        Returns a tuple of the response and the decoded JSON
+        Provide always_return=True to handle all errors yourself
+        """
+        return self._pin_request('DELETE', url_tail, payload, always_return)
 
     def get_balance(self, currency="AUD"):
         """

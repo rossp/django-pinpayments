@@ -22,9 +22,31 @@ The provided Card tokens can also be used to create [Customer tokens](https://pi
 
 ### Pre-requisites
 
-* Django (Only tested on 1.4 & 1.5)
+* Django 1.6, 1.7. May work in 1.5.
 * [python-requests](http://docs.python-requests.org/en/latest/)
 * [Mock](http://www.voidspace.org.uk/python/mock/)
+
+
+### Use with Django 1.7 migrations
+
+If you are installing to a new project with Django 1.7 or greater, install migrations normally with `./manage.py migrate pinpayments`
+
+If you are upgrading from South to Django 1.7 and have previously installed `django-pinpayments`:
+* ensure you have installed up to the last South migrations in version `django-pinpayments v1.10.0`
+* fake the initial migrations into Django's new migration system with: `./manage.py migrate pinpayments 0001 --fake`
+* install any remaining migrations with `./manage.py migrate pinpayments`
+
+### South backwards compatibility
+
+To continue using `django-pinpayments` with South you will need to update the location of the South migration files in your `settings.py` as below:
+
+```python
+    SOUTH_MIGRATION_MODULES = {
+        'pinpayments': 'pinpayments.south_migrations',
+    }
+```
+
+**Warning:** South compatibility in `django-pinpayments` will not be maintained for very long.
 
 ### Settings
 
@@ -247,6 +269,7 @@ All use is at your own risk.
 * Ross Poulton https://github.com/rossp
 * Huw https://github.com/huwshimi
 * Chris Darko https://github.com/woegjiub
+* Thomas Randle https://github.com/Rundll
 
 ### Contributing
 
@@ -279,6 +302,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Changelog
 
+1.1.0 (May 19, 2015)
+- Upgrade for Django 1.7
+- Moved south migrations, see 'South backwards compatibility' above
+- Moved primary CustomerToken model class to CustomerTokenAbstract and removed user FK, so as to allow non User FK-ed implementations, a CustomerToken model call remains as before inheriting from CustomerTokenAbstract, so there are no breaking changes in this version
+- Added CardToken model to track multiple cards against customer tokens
+- Added data migrations for CustomerToken -> CardToken model changes, added deprecation warnings for old attribute accessors
+- Fixed CustomerToken custom user auth model migrations
+- Added some more tests
+
 1.0.9 (Jan 09, 2014)
 - Initial support for Payments
 
@@ -290,4 +322,5 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 - Better error handling
 - Ability to change card token for a customer (rather than generating a new CustomerToken)
 - Timezone aware dates on Transactions
-- Store cardholder name on CustomerToken.
+- Store cardholder name on CustomerToken
+

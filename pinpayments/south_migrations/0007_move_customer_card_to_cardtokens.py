@@ -1,46 +1,31 @@
 # -*- coding: utf-8 -*-
 from south.utils import datetime_utils as datetime
 from south.db import db
-from south.v2 import SchemaMigration
+from south.v2 import DataMigration
 from django.db import models
 
+from . import User, user_orm_label, user_model_label, user_model_definition
 
-class Migration(SchemaMigration):
+
+class Migration(DataMigration):
 
     def forwards(self, orm):
-        # Adding model 'PinRecipient'
-        db.create_table(u'pinpayments_pinrecipient', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('token', self.gf('django.db.models.fields.CharField')(max_length=40)),
-            ('email', self.gf('django.db.models.fields.EmailField')(max_length=100)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=100, null=True, blank=True)),
-            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-            ('bank_account', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['pinpayments.BankAccount'], null=True, blank=True)),
-            ('environment', self.gf('django.db.models.fields.CharField')(db_index=True, max_length=25, blank=True)),
-        ))
-        db.send_create_signal(u'pinpayments', ['PinRecipient'])
-
-        # Adding model 'BankAccount'
-        db.create_table(u'pinpayments_bankaccount', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('token', self.gf('django.db.models.fields.CharField')(max_length=40)),
-            ('bank_name', self.gf('django.db.models.fields.CharField')(max_length=100)),
-            ('branch', self.gf('django.db.models.fields.CharField')(max_length=100, blank=True)),
-            ('name', self.gf('django.db.models.fields.CharField')(max_length=100)),
-            ('bsb', self.gf('django.db.models.fields.IntegerField')(max_length=6)),
-            ('number', self.gf('django.db.models.fields.CharField')(max_length=20)),
-            ('environment', self.gf('django.db.models.fields.CharField')(db_index=True, max_length=25, blank=True)),
-        ))
-        db.send_create_signal(u'pinpayments', ['BankAccount'])
-
+        "Write your forwards methods here."
+        # Note: Don't use "from appname.models import ModelName". 
+        # Use orm.ModelName to refer to models in this application,
+        # and orm['appname.ModelName'] for models in other applications.
+        for customer_token in orm.CustomerToken.objects.all():
+            card_token = orm.CardToken()
+            card_token.scheme = customer_token.card_type
+            card_token.display_number = customer_token.card_number
+            card_token.name = customer_token.card_name
+            card_token.expiry_month = customer_token.card_expiry_month
+            card_token.expiry_year = customer_token.card_expiry_year
+            card_token.save()
+            customer_token.cards.add(card_token)
 
     def backwards(self, orm):
-        # Deleting model 'PinRecipient'
-        db.delete_table(u'pinpayments_pinrecipient')
-
-        # Deleting model 'BankAccount'
-        db.delete_table(u'pinpayments_bankaccount')
-
+        "Write your backwards methods here."
 
     models = {
         u'auth.group': {
@@ -56,22 +41,6 @@ class Migration(SchemaMigration):
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '50'})
         },
-        u'auth.user': {
-            'Meta': {'object_name': 'User'},
-            'date_joined': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'email': ('django.db.models.fields.EmailField', [], {'max_length': '75', 'blank': 'True'}),
-            'first_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'groups': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "u'user_set'", 'blank': 'True', 'to': u"orm['auth.Group']"}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'is_active': ('django.db.models.fields.BooleanField', [], {'default': 'True'}),
-            'is_staff': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'is_superuser': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
-            'last_login': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
-            'last_name': ('django.db.models.fields.CharField', [], {'max_length': '30', 'blank': 'True'}),
-            'password': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
-            'user_permissions': ('django.db.models.fields.related.ManyToManyField', [], {'symmetrical': 'False', 'related_name': "u'user_set'", 'blank': 'True', 'to': u"orm['auth.Permission']"}),
-            'username': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '100'})
-        },
         u'contenttypes.contenttype': {
             'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
             'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
@@ -83,12 +52,31 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'BankAccount'},
             'bank_name': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'branch': ('django.db.models.fields.CharField', [], {'max_length': '100', 'blank': 'True'}),
-            'bsb': ('django.db.models.fields.IntegerField', [], {'max_length': '6'}),
+            'bsb': ('django.db.models.fields.IntegerField', [], {}),
             'environment': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '25', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
             'number': ('django.db.models.fields.CharField', [], {'max_length': '20'}),
-            'token': ('django.db.models.fields.CharField', [], {'max_length': '40'})
+            'token': ('django.db.models.fields.CharField', [], {'max_length': '40', 'db_index': 'True'})
+        },
+        u'pinpayments.cardtoken': {
+            'Meta': {'ordering': "[u'created']", 'object_name': 'CardToken'},
+            'address_city': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
+            'address_country': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
+            'address_line1': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
+            'address_line2': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
+            'address_postcode': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
+            'address_state': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'display_number': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
+            'environment': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '25', 'blank': 'True'}),
+            'expiry_month': ('django.db.models.fields.IntegerField', [], {'default': 'None', 'null': 'True', 'blank': 'True'}),
+            'expiry_year': ('django.db.models.fields.IntegerField', [], {'default': 'None', 'null': 'True', 'blank': 'True'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
+            'primary': ('django.db.models.fields.NullBooleanField', [], {'default': 'False', 'null': 'True', 'blank': 'True'}),
+            'scheme': ('django.db.models.fields.CharField', [], {'max_length': '20', 'null': 'True', 'blank': 'True'}),
+            'token': ('django.db.models.fields.CharField', [], {'max_length': '100'})
         },
         u'pinpayments.customertoken': {
             'Meta': {'object_name': 'CustomerToken'},
@@ -96,11 +84,12 @@ class Migration(SchemaMigration):
             'card_name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
             'card_number': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
             'card_type': ('django.db.models.fields.CharField', [], {'max_length': '20', 'null': 'True', 'blank': 'True'}),
+            'cards': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['pinpayments.CardToken']", 'symmetrical': 'False'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'environment': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '25', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'token': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
-            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['auth.User']"})
+            'user': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['%s']" % user_orm_label})
         },
         u'pinpayments.pinrecipient': {
             'Meta': {'object_name': 'PinRecipient'},
@@ -110,7 +99,7 @@ class Migration(SchemaMigration):
             'environment': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '25', 'blank': 'True'}),
             u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
-            'token': ('django.db.models.fields.CharField', [], {'max_length': '40'})
+            'token': ('django.db.models.fields.CharField', [], {'max_length': '40', 'db_index': 'True'})
         },
         u'pinpayments.pintransaction': {
             'Meta': {'ordering': "[u'-date']", 'object_name': 'PinTransaction'},
@@ -138,7 +127,21 @@ class Migration(SchemaMigration):
             'processed': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'succeeded': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'transaction_token': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '100', 'null': 'True', 'blank': 'True'})
-        }
+        },
+        u'pinpayments.pintransfer': {
+            'Meta': {'object_name': 'PinTransfer'},
+            'amount': ('django.db.models.fields.IntegerField', [], {}),
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'currency': ('django.db.models.fields.CharField', [], {'max_length': '10'}),
+            'description': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'pin_response_text': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
+            'recipient': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['pinpayments.PinRecipient']", 'null': 'True', 'blank': 'True'}),
+            'status': ('django.db.models.fields.CharField', [], {'max_length': '100', 'null': 'True', 'blank': 'True'}),
+            'transfer_token': ('django.db.models.fields.CharField', [], {'db_index': 'True', 'max_length': '100', 'null': 'True', 'blank': 'True'})
+        },
+        user_model_label: user_model_definition,
     }
 
     complete_apps = ['pinpayments']
+    symmetrical = True
