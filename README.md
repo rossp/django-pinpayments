@@ -302,6 +302,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Changelog
 
+1.1.1 (May 21, 2015)
+- Fixed data migration attributes issue
+- Fixed a few issues with the new manager methods
+- Minor change to CardTokenAbstract.expiry_str() output
+- Added an CardTokenManager.update_card_from_data() method to help keep CardToken instance in sync with API
+- Added CardToken model to admin.py
+
 1.1.0 (May 19, 2015)
 - Upgrade for Django 1.7
 - Moved south migrations, see 'South backwards compatibility' above

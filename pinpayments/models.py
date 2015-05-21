@@ -108,9 +108,9 @@ class CardTokenAbstract(models.Model):
 
     @property
     def expiry_str(self):
-        if not self.expiry_month or not self.expiry_year:
+        if None in (self.expiry_month, self.expiry_year):
             return ""
-        return "{0}/{1}".format(self.expiry_month, self.expiry_year)
+        return "{0}/{1}".format(str(self.expiry_month).zfill(2), self.expiry_year)
 
     @property
     def has_expired(self):
@@ -231,8 +231,8 @@ class CustomerTokenAbstract(models.Model):
     def delete_card(self, card):
         return self._default_manager.delete_card_from_customer(self, card)
 
-    def update_primary_card(self, card):
-        return self._default_manager.update_primary_card_for_customer(self, card)
+    def set_primary_card(self, card):
+        return self._default_manager.set_primary_card_for_customer(self, card)
 
     @classmethod
     def create_from_card_token(cls, card_token, user, environment=''):

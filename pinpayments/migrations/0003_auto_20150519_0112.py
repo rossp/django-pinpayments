@@ -12,8 +12,6 @@ def migrate_customer_card_data_to_cardtokens(apps, schema_editor):
         card_token.scheme = customer_token.card_type
         card_token.display_number = customer_token.card_number
         card_token.name = customer_token.card_name
-        card_token.expiry_month = customer_token.card_expiry_month
-        card_token.expiry_year = customer_token.card_expiry_year
         card_token.save()
         customer_token.cards.add(card_token)
 

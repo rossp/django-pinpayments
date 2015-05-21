@@ -1,9 +1,11 @@
 from __future__ import absolute_import, unicode_literals
 
-from django.db import models
-from pinpayments.objects import PinEnvironment
-from django.db.models.loading import get_model
 from pinpayments.exceptions import PinError
+from pinpayments.objects import PinEnvironment
+
+from django.db import models
+from django.db.models.loading import get_model
+from django.utils.translation import ugettext_lazy as _
 
 
 class CardTokenManager(models.Manager):
@@ -16,7 +18,17 @@ class CardTokenManager(models.Manager):
         """
             Creates a new CardToken instance from a PIN response
         """
-        card = self.model()
+        CardToken = self.model
+
+        card = CardToken()
+        self.update_card_from_data(card, data)
+
+        return card
+
+    def update_card_from_data(self, card, data, commit=True):
+        """
+            Updates the CardToken fields from a json data response
+        """
         card.token = data.get('token')
         card.scheme = data.get('scheme')
         card.name = data.get('name')
@@ -30,8 +42,9 @@ class CardTokenManager(models.Manager):
         card.address_postcode = data.get('address_postcode')
         card.address_country = data.get('address_country')
         card.primary = data.get('primary')
-        card.save()
-        return card
+
+        if commit:
+            card.save()
 
 
 class CustomerTokenManager(models.Manager):
@@ -40,7 +53,7 @@ class CustomerTokenManager(models.Manager):
         Model's class impl for sanity and separation of concern reasons.
 
         Variables and parameter semantics: because the actual model names in this app are a
-        little confusing with the API paramters:
+        little confusing with the API parameters:
             CustomerToken instances -> customer
             CardToken instances -> `card`
             API customer token -> `customer_token`
@@ -50,28 +63,37 @@ class CustomerTokenManager(models.Manager):
     def set_primary_card_models(self, customer, primary_card, data={}):
         """
         Handles keeping the primary CardTokens of cards on CustomerTokens in sync.
-
-        TODO: update the card_token attributes from the returned data if needed.
         """
+        CardToken = get_model('pinpayments', 'CardToken')
+
+        # set all other cards.primary=False.
         customer.cards.exclude(pk=primary_card.pk).filter(primary=True).update(primary=False)
+
+        # update the card field values if an updated data dict has been provided.
+        if data:
+            CardToken.objects.update_card_from_data(primary_card, data, commit=False)
+
+        # make sure our new primary card is primary!
         primary_card.primary = True
         primary_card.save()
 
-    def update_primary_card_for_customer(self, customer, card):
+        return True
+
+    def set_primary_card_for_customer(self, customer, card):
         """
             Sets the primary CardToken for a given CustomerToken.
         """
         payload = {}
 
         payload.update({
-            'primary_card_token': card.token
+            'primary_card_token': card.token,
         })
 
         pin_env = PinEnvironment(customer.environment)
         url_tail = "/customers/{0}".format(customer.token)
         data = pin_env.pin_put(url_tail, payload)[1]['response']
 
-        self.set_primary_card_models(customer, card, data)
+        return self.set_primary_card_models(customer, card, data.get('card'))
 
     def add_card_token_to_customer(self, customer, card_token):
         """
@@ -84,8 +106,14 @@ class CustomerTokenManager(models.Manager):
         url_tail = "/customers/{0}/cards".format(customer.token)
         data = pin_env.pin_post(url_tail, payload)[1]['response']
 
-        card = CardToken.objects.create_from_data(data)
-        customer.cards.add(card)
+        if customer.cards.filter(token=card_token).exists():
+            card = customer.cards.get(token=card_token)
+
+            # update the card fields
+            CardToken.objects.update_card_from_data(card, data)
+        else:
+            card = CardToken.objects.create_from_data(data)
+            customer.cards.add(card)
 
         if card.primary:
             self.set_primary_card_models(customer, card)
@@ -93,7 +121,7 @@ class CustomerTokenManager(models.Manager):
 
     def create_from_card_token(self, card_token, user, environment=None):
         """
-            Create a new CustomerToken from a card_token and attacheds a
+            Create a new CustomerToken from a card_token and attaches a
             CardToken to the CustomerToken instance.
         """
         CardToken = get_model('pinpayments', 'CardToken')
@@ -102,6 +130,7 @@ class CustomerTokenManager(models.Manager):
         pin_env = PinEnvironment(environment)
         payload = {'email': user.email, 'card_token': card_token}
         data = pin_env.pin_post("/customers", payload)[1]['response']
+
         customer = CustomerToken.objects.create(
             user=user,
             token=data['token'],
@@ -127,8 +156,9 @@ class CustomerTokenManager(models.Manager):
             raise PinError("The CardToken does not belong to the CustomerToken and cannot be deleted.")
 
         url_tail = "/customers/{0}/cards/{1}".format(customer.token, card.token)
-        data = pin_env.pin_delete(url_tail, {})
+        data = pin_env.pin_delete(url_tail, {}, process_response_body=False)
 
         # success
         customer.cards.remove(card)
         card.delete()
+        return True
