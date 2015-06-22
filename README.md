@@ -302,6 +302,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Changelog
 
+1.1.2 (June 22, 2015)
+- Track CardToken environment.
+
 1.1.1 (May 21, 2015)
 - Fixed data migration attributes issue
 - Fixed a few issues with the new manager methods
