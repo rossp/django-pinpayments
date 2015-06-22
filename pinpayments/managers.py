@@ -30,6 +30,8 @@ class CardTokenManager(models.Manager):
             Updates the CardToken fields from a json data response
         """
         card.token = data.get('token')
+        if 'environment' in data.keys():
+            card.environment = data.get('environment')
         card.scheme = data.get('scheme')
         card.name = data.get('name')
         card.display_number = data.get('display_number')
@@ -105,6 +107,7 @@ class CustomerTokenManager(models.Manager):
 
         url_tail = "/customers/{0}/cards".format(customer.token)
         data = pin_env.pin_post(url_tail, payload)[1]['response']
+        data['environment'] = customer.environment
 
         if customer.cards.filter(token=card_token).exists():
             card = customer.cards.get(token=card_token)
