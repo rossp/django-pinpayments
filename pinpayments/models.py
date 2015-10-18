@@ -12,8 +12,6 @@ from django.utils import timezone
 from django.utils.encoding import python_2_unicode_compatible
 from django.utils.timezone import get_default_timezone
 from django.utils.translation import ugettext_lazy as _
-import requests
-from simplejson import JSONDecodeError
 
 from .exceptions import ConfigError, PinError
 from .objects import PinEnvironment
