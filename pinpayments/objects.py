@@ -7,7 +7,6 @@ from decimal import Decimal
 
 from django.conf import settings
 import requests
-from simplejson import JSONDecodeError
 
 from .exceptions import ConfigError, PinError
 
@@ -69,7 +68,7 @@ class PinEnvironment(object):
             )
         try:
             response_json = response.json()
-        except (AttributeError, JSONDecodeError, ValueError):
+        except (AttributeError, ValueError):
             if always_return:
                 response_json = None
             else:
