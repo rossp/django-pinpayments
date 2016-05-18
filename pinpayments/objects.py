@@ -15,7 +15,7 @@ class PinEnvironment(object):
     """ Container for pin settings """
     def __init__(self, name="test", *args, **kwargs):
         """ Populate contents from Settings """
-        if name in ('test', ''):
+        if name in ('test', '', None):
             name = getattr(settings, 'PIN_DEFAULT_ENVIRONMENT', 'test')
 
         env_dict = {}
@@ -42,12 +42,12 @@ class PinEnvironment(object):
         """ Returns auth as expected by requests for Pin """
         return (self.secret, '')
 
-    def _pin_request(self, method, url_tail, payload=None, always_return=False):
+    def _pin_request(self, method, url_tail, payload=None, always_return=False, process_response_body=True):
         """
         Internal method to abstract common details of calls to Pin API
         """
         method = method.lower()
-        if method not in ['get', 'post', 'put']:
+        if method not in ['get', 'post', 'put', 'delete']:
             raise Exception(
                 "Method for request '{0}' was invalid".format(method)
             )
@@ -66,18 +66,27 @@ class PinEnvironment(object):
                 auth=self.auth,
                 headers={'content_type': 'application/json'}
             )
+
+        response_json = None
         try:
             response_json = response.json()
         except (AttributeError, ValueError):
             if always_return:
                 response_json = None
             else:
-                raise PinError(
-                    "Error retrieving response for environment {0}"
-                    "at url {1}".format(self.name, url)
-                )
+                """
+                    Some API calls (such as some DELETE calls) do not return a json body
+                    response at all, just status codes with different 'meanings'. We're not
+                    quite at the point of handling them properly so we just flag API calls
+                    as to whether they're expecting a json object back at all.
+                """
+                if process_response_body:
+                    raise PinError(
+                        "Error retrieving response for environment {0}"
+                        "at url {1}".format(self.name, url)
+                    )
 
-        if not always_return:
+        if response_json and not always_return:
             if 'error' in response_json.keys():
                 raise PinError(
                     'Error returned from Pin API: {0}:{1}'.format(
@@ -88,32 +97,41 @@ class PinEnvironment(object):
 
         return (response, response_json)
 
-    def pin_get(self, url_tail, always_return=False):
+    def pin_get(self, url_tail, always_return=False, process_response_body=True):
         """
         Provide a relative URL to access the API for it via GET
         Include the leading /
         Returns a tuple of the response and the decoded JSON
         Provide always_return=True to handle all errors yourself
         """
-        return self._pin_request('GET', url_tail, always_return)
+        return self._pin_request('GET', url_tail, always_return, process_response_body)
 
-    def pin_put(self, url_tail, payload, always_return=False):
+    def pin_put(self, url_tail, payload, always_return=False, process_response_body=True):
         """
         Provide a relative URL to access the API for it via PUT
         Include the leading /
         Returns a tuple of the response and the decoded JSON
         Provide always_return=True to handle all errors yourself
         """
-        return self._pin_request('PUT', url_tail, payload, always_return)
+        return self._pin_request('PUT', url_tail, payload, always_return, process_response_body)
 
-    def pin_post(self, url_tail, payload, always_return=False):
+    def pin_post(self, url_tail, payload, always_return=False, process_response_body=True):
         """
         Provide a relative URL to access the API for it via POST
         Include the leading /
         Returns a tuple of the response and the decoded JSON
         Provide always_return=True to handle all errors yourself
         """
-        return self._pin_request('POST', url_tail, payload, always_return)
+        return self._pin_request('POST', url_tail, payload, always_return, process_response_body)
+
+    def pin_delete(self, url_tail, payload, always_return=False, process_response_body=True):
+        """
+        Provide a relative URL to access the API for it via DELETE
+        Include the leading /
+        Returns a tuple of the response and the decoded JSON
+        Provide always_return=True to handle all errors yourself
+        """
+        return self._pin_request('DELETE', url_tail, payload, always_return, process_response_body)
 
     def get_balance(self, currency="AUD"):
         """

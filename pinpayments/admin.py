@@ -4,7 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from pinpayments.models import (
     PinRecipient, PinTransfer, PinTransaction, CustomerToken
-)
+, CardToken)
 
 
 class PinTransactionAdmin(admin.ModelAdmin):
@@ -81,22 +81,19 @@ class PinTransactionInline(admin.TabularInline):
         return False
 
 
-class TokenAdmin(admin.ModelAdmin):
+class CustomerTokenAdmin(admin.ModelAdmin):
     """ Shows customer tokens """
     list_display = (
-        'token',
         'user',
+        'token',
         'environment',
         'created',
         'active',
-        'card_type',
-        'card_number',
     )
-    search_fields = ('token', 'card_number')
-    list_filter = ('environment', 'card_type', 'active')
+    search_fields = ('token', )
+    list_filter = ('environment', 'active')
     date_hierarchy = 'created'
-    inlines = (PinTransactionInline,)
-    readonly_fields = ('environment', 'token', 'card_type', 'card_number')
+    readonly_fields = ('environment', 'token')
 
 
 class PinTransferAdmin(admin.ModelAdmin):
@@ -174,5 +171,6 @@ class PinRecipientAdmin(admin.ModelAdmin):
 
 admin.site.register(PinRecipient, PinRecipientAdmin)
 admin.site.register(PinTransaction, PinTransactionAdmin)
-admin.site.register(CustomerToken, TokenAdmin)
+admin.site.register(CustomerToken, CustomerTokenAdmin)
+admin.site.register(CardToken)
 admin.site.register(PinTransfer, PinTransferAdmin)
