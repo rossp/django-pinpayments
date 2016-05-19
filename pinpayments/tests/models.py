@@ -16,6 +16,7 @@ from django.test import TestCase
 from django.test.utils import override_settings
 from mock import patch
 from requests import Response
+from six import binary_type
 
 
 User = get_user_model()
@@ -39,6 +40,8 @@ class FakeResponse(Response):
     def __init__(self, status_code, content):
         super(FakeResponse, self).__init__()
         self.status_code = status_code
+        if type(content) != binary_type:
+            content = binary_type(content, 'utf-8')
         self._content = content
 
 
@@ -158,7 +161,7 @@ class CardTokenTests(TestCase):
         # change primary card
         mock_request_put.return_value = FakeResponse(200, self.customer_put_update_card_token_data)
         old_primary_card = customer.primary_card
-        customer.update_primary_card(card2)
+        customer.set_primary_card(card2)
 
         # changed primary card tests
         old_primary_card = CardToken.objects.get(pk=old_primary_card.pk)

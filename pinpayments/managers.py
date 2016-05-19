@@ -4,7 +4,11 @@ from pinpayments.exceptions import PinError
 from pinpayments.objects import PinEnvironment
 
 from django.db import models
-from django.db.models.loading import get_model
+try:
+    from django.apps import apps
+    get_model = apps.get_model
+except ImportError:  # django < 1.7
+    from django.db.models.loading import get_model
 from django.utils.translation import ugettext_lazy as _
 
 
