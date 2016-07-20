@@ -62,6 +62,13 @@ This setting, with at least one environment, is **required** for django-pinpayme
 
 API keys and secrets are available from your [Pin Account page](https://dashboard.pin.net.au/account). Hosts should not include *https* or a trailing slash; these will be added automatically.
 
+#### `PIN_DEFAULT_ENVIRONMENT`
+
+At runtime, the `{% pin_headers %}` template tag can define which environment to use. If you don't specify an environment in the template tag, this setting determines which account to use.
+
+**Default:** `PIN_DEFAULT_ENVIRONMENT = 'test'`
+
+
 ### Steps to install
 
 * Create a project For example: django-admin startproject example1
@@ -69,12 +76,6 @@ API keys and secrets are available from your [Pin Account page](https://dashboar
 * Create the required(above listed PIN_ENVIRONMENT) settings in the settings.py file
 * Migrate the database by python manage.py migrate pinpayments
 * Now, you are ready to use the library with your project.
-
-#### `PIN_DEFAULT_ENVIRONMENT`
-
-At runtime, the `{% pin_headers %}` template tag can define which environment to use. If you don't specify an environment in the template tag, this setting determines which account to use.
-
-**Default:** `PIN_DEFAULT_ENVIRONMENT = 'test'`
 
 ### Template Tags
 
