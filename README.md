@@ -245,9 +245,9 @@ of pounds, yen for JPY)
 
 
 ### Views: Sample Code
+Create a views.py file and start using the models like the way mentioned in the examples below:
 
 #### Create a customer
-Create a views.py file and start using the models like the way mentioned in the examples below:
 
 ```
     def register_customer(request):
@@ -258,6 +258,25 @@ Create a views.py file and start using the models like the way mentioned in the 
         user = User.objects.get(email = 'rahul.sharma416@gmail.com')
     
         output = customerToken.create_from_card_token('card_token', user, 'test')
+        return HttpResponse(output)
+```
+
+#### Charge a customer
+
+```
+    def charge_customer(request):
+        pinTransaction = PinTransaction()
+    
+        pinTransaction.email_address = 'rahul.sharma416@gmail.com'
+        pinTransaction.description = 'Services fee'
+        pinTransaction.amount = 100
+        pinTransaction.currency = 'AUD'
+        pinTransaction.ip_address = get_client_ip(request)
+        customerToken = CustomerToken.objects.get(token = 'cus_UetjXq4GewUZPSlkh9OCVw')
+        pinTransaction.customer_token = customerToken
+    
+        output = pinTransaction.process_transaction()
+        return HttpResponse(output)
 ```
 
 ### Warnings
