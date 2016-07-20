@@ -8,7 +8,6 @@ The provided Card tokens can also be used to create [Customer tokens](https://pi
 
 `django-pinpayments` is designed to be a simple base for your own billing projects. It doesn't make too many assumptions, and leaves many things open for your design input.
 
-
 ### Not Included
 
 * Any link to your existing models or business logic
@@ -62,6 +61,14 @@ This setting, with at least one environment, is **required** for django-pinpayme
 ```
 
 API keys and secrets are available from your [Pin Account page](https://dashboard.pin.net.au/account). Hosts should not include *https* or a trailing slash; these will be added automatically.
+
+### Steps to install
+
+* Create a project For example: django-admin startproject example1
+* Include this library into that project
+* Create the required(above listed PIN_ENVIRONMENT) settings in the settings.py file
+* Migrate the database by python manage.py migrate pinpayments
+* Now, you are ready to use the library with your project.
 
 #### `PIN_DEFAULT_ENVIRONMENT`
 
