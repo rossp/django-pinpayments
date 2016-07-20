@@ -77,7 +77,9 @@ At runtime, the `{% pin_headers %}` template tag can define which environment to
 * Migrate the database by python manage.py migrate pinpayments
 * Now, you are ready to use the library with your project.
 
-### Create a customer
+### Library Internals
+
+#### Create a customer
 
 ```
    views.py
@@ -88,7 +90,7 @@ At runtime, the `{% pin_headers %}` template tag can define which environment to
     User = get_user_model()
     user = User.objects.get(email = 'rahul.sharma416@gmail.com')
     
-    output = customerToken.create_from_card_token('card__tAqHdhvwmY2DiltiAoLow', user, 'test')
+    output = customerToken.create_from_card_token('card_token', user, 'test')
 ```
 
 ### Template Tags
