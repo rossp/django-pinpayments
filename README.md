@@ -272,7 +272,7 @@ Create a views.py file and start using the models like the way mentioned in the 
         pinTransaction.amount = 100
         pinTransaction.currency = 'AUD'
         pinTransaction.ip_address = get_client_ip(request)
-        customerToken = CustomerToken.objects.get(token = 'cus_UetjXq4GewUZPSlkh9OCVw')
+        customerToken = CustomerToken.objects.get(token = 'customer_token')
         pinTransaction.customer_token = customerToken
     
         output = pinTransaction.process_transaction()
