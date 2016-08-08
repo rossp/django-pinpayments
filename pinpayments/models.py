@@ -237,8 +237,11 @@ class CustomerTokenAbstract(models.Model):
     @classmethod
     def create_from_card_token(cls, card_token, user, environment=''):
         # TODO: Remove when dropping Django 1.6 support
-        warnings.warn("The classmethod CustomerToken.create_from_card_token() will be removed in the future, "
-                      "use the model's manager method CustomerToken.objects.create_from_card_token() instead", DeprecationWarning)
+        warnings.warn(
+            "The classmethod CustomerToken.create_from_card_token() will be "
+            "removed in the future, use the model's manager method "
+            "CustomerToken.objects.create_from_card_token() instead",
+            DeprecationWarning)
         if not environment:
             environment = None
         return cls.objects.create_from_card_token(card_token, user, environment)
