@@ -8,7 +8,7 @@ from decimal import Decimal
 from django.conf import settings
 import requests
 
-from .exceptions import ConfigError, PinError
+from pinpayments.exceptions import ConfigError, PinError
 
 
 class PinEnvironment(object):

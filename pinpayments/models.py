@@ -15,10 +15,10 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.utils.timezone import get_default_timezone
 from django.utils.translation import ugettext_lazy as _
 
-from .exceptions import ConfigError, PinError
-from .objects import PinEnvironment
-from .utils import get_value
+from pinpayments.exceptions import ConfigError, PinError
 from pinpayments.managers import CardTokenManager, CustomerTokenManager
+from pinpayments.objects import PinEnvironment
+from pinpayments.utils import get_value
 
 
 if getattr(settings, 'PIN_ENVIRONMENTS', {}) == {}:
