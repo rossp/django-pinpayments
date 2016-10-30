@@ -212,6 +212,57 @@ When the customer changes their credit card, you should collect that new card vi
 
 Because you're keeping the `CustomerToken`, you can re-bill them as often as is necessary (within your legal rights and your agreement with the customer, obviously).
 
+To add and use a second card, there are helpers on the models and mangagers.
+
+```python
+    # Get the first active token. Big assumption that we have one we can use.
+    customer = request.user.customertoken_set.filter(active=True)[0]
+    result = customer.add_card_token(request.POST.get('card_token')
+    if result:
+        return "Updated and ready to charge!"
+    else:
+        return "Unable to update card. Try again."
+```
+
+You can then (for example) offer the customer a list of cards to charge, and charge one.
+
+```python
+    # View has been POSTed with a PK for one of their cards
+    card_token = request.user.customertoken_set.filter(active=True)[0].cards.all().get(pk=pk)
+    transaction = PinTransaction(
+        card_token = card_token,
+        email = request.user.email,
+        ip_address      = request.META.get('REMOTE_ADDR'),
+        amount          = 25, # Dollars
+        currency        = 'AUD',
+        description     = 'Monthly payment',
+    )
+    transaction.save()
+    result = transaction.process_transaction()
+    if transaction.succeeded:
+        return "We got the money!"
+    else:
+        return "No money today :( Error message: %s " % result
+```
+
+You could allow them to change the primary card.
+
+```python
+    # View has been POSTed with a PK for one of their cards
+    customer = request.user.customertoken_set.filter(active=True)[0]
+    card = customer.cards.all().get(pk=pk)
+    customer.set_primary_card(card)
+```
+
+You could allow them to remove extraneous cards.
+
+```python
+    # View has been POSTed with a PK for one of their cards
+    customer = request.user.customertoken_set.filter(active=True)[0]
+    card = customer.cards.all().get(pk=pk)
+    customer.delete_card(card)
+```
+
 ### Models related to Payouts
 
 #### `pinpayments.BankAccount`
