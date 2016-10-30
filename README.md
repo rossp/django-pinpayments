@@ -22,7 +22,7 @@ The provided Card tokens can also be used to create [Customer tokens](https://pi
 
 ### Pre-requisites
 
-* Django 1.6, 1.7. May work in 1.5.
+* Django 1.8, 1.7, 1.6. May work in 1.5, untested but likely to work in 1.9+
 * [python-requests](http://docs.python-requests.org/en/latest/)
 * [Mock](http://www.voidspace.org.uk/python/mock/)
 
