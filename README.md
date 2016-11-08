@@ -43,19 +43,19 @@ This setting, with at least one environment, is **required** for django-pinpayme
 ```python
     PIN_ENVIRONMENTS = {
         'test': {
-            'key': 'pk_qokBvPpEHIVmNETSoSdDVYP',
-            'secret': 'MBjZMurpDtjDANDNFQObZmBhMg',
-            'host': 'test-api.pin.net.au',
+            'key': '',
+            'secret': '',
+            'host': '',
         },
         'live': {
-            'key': 'pk_yGCGLonMHJMFscFyNaLZdkEV',
-            'secret': 'tOAQeMsMaBrxejJHIqHJVIObUS',
-            'host': 'api.pin.net.au',
+            'key': '',
+            'secret': '',
+            'host': '',
         },
         'live_project2': {
-            'key': 'pk_ByNNmfJfsMywEIEa-aCteTR',
-            'secret': 'CPslpGmoakWdPuxjtrfibZVLaS',
-            'host': 'api.pin.net.au',
+            'key': '',
+            'secret': '',
+            'host': '',
         },
     }
 ```
