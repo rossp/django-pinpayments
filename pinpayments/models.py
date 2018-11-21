@@ -278,7 +278,7 @@ class PinTransaction(models.Model):
             data = response_json['response']
             self.succeeded = True
             self.transaction_token = data['token']
-            self.fees = data['total_fees'] / Decimal("100.00")
+            self.fees = data['total_fees'] / Decimal("100.00") if data['total_fees'] is not None else None
             self.pin_response = data['status_message']
             self.card_address1 = data['card']['address_line1']
             self.card_address2 = data['card']['address_line2']
