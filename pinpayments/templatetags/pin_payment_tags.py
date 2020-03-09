@@ -9,7 +9,7 @@ def pin_header(context, environment=''):
     """
     pin_header - Renders the JavaScript required for Pin.js payments.
     This will also include the Pin.js file from pin.net.au.
-    Optionally accepts an 'environment' (eg test/live) as a paramater,
+    Optionally accepts an 'environment' (eg test/live) as a parameter,
     otherwise the default will be used.
     """
     if environment == '':
