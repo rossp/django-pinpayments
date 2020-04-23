@@ -1,7 +1,6 @@
 """
 Models for interacting with Pin, and storing results
 """
-from __future__ import unicode_literals
 
 from datetime import datetime
 from decimal import Decimal
@@ -9,7 +8,6 @@ from decimal import Decimal
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from django.utils.encoding import python_2_unicode_compatible
 from django.utils.timezone import get_default_timezone
 from django.utils.translation import ugettext_lazy as _
 
@@ -33,7 +31,6 @@ CARD_TYPES = (
 )
 
 
-@python_2_unicode_compatible
 class CustomerToken(models.Model):
     """
     A token returned by the Pin Payments Customer API.
@@ -44,7 +41,7 @@ class CustomerToken(models.Model):
     Card token - difference is that a card can only be used once, for a transaction
     or to be converted to a Customer token. Customer tokens can be reused.
     """
-    user = models.ForeignKey(settings.AUTH_USER_MODEL)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     environment = models.CharField(
         max_length=25, db_index=True, blank=True,
         help_text=_('The name of the Pin environment to use, eg test or live.')
@@ -108,7 +105,6 @@ class CustomerToken(models.Model):
         return customer
 
 
-@python_2_unicode_compatible
 class PinTransaction(models.Model):
     """
     PinTransaction - model to hold response data from the pin.net.au
@@ -163,7 +159,8 @@ class PinTransaction(models.Model):
     )
     customer_token = models.ForeignKey(
         CustomerToken, blank=True, null=True,
-        help_text=_('Provided by Customer API')
+        help_text=_('Provided by Customer API'),
+        on_delete=models.SET_NULL,
     )
     pin_response = models.CharField(
         _('API Response'), max_length=255, blank=True, null=True,
@@ -293,7 +290,6 @@ class PinTransaction(models.Model):
         return self.pin_response
 
 
-@python_2_unicode_compatible
 class BankAccount(models.Model):
     """ A representation of a bank account, as stored by Pin. """
     token = models.CharField(
@@ -329,7 +325,6 @@ class BankAccount(models.Model):
         return "{0}".format(self.token)
 
 
-@python_2_unicode_compatible
 class PinRecipient(models.Model):
     """
     A recipient stored for the purpose of having funds transferred to them
@@ -345,7 +340,8 @@ class PinRecipient(models.Model):
     )
     created = models.DateTimeField(_("Time created"), auto_now_add=True)
     bank_account = models.ForeignKey(
-        BankAccount, blank=True, null=True
+        BankAccount, blank=True, null=True,
+        on_delete=models.SET_NULL,
     )
     environment = models.CharField(
         max_length=25, db_index=True, blank=True,
@@ -386,7 +382,6 @@ class PinRecipient(models.Model):
         return new_recipient
 
 
-@python_2_unicode_compatible
 class PinTransfer(models.Model):
     """
     A transfer from a PinEnvironment to a PinRecipient
@@ -410,7 +405,7 @@ class PinTransfer(models.Model):
         "Transfer amount, in the base unit of the "
         "currency (e.g.: cents for AUD, yen for JPY)"
     ))
-    recipient = models.ForeignKey(PinRecipient, blank=True, null=True)
+    recipient = models.ForeignKey(PinRecipient, blank=True, null=True, on_delete=models.SET_NULL)
     created = models.DateTimeField(auto_now_add=True)
     pin_response_text = models.TextField(
         _('Complete API Response'), blank=True, null=True,

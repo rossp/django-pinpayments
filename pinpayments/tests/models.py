@@ -32,7 +32,7 @@ class FakeResponse(Response):
     def __init__(self, status_code, content):
         super(FakeResponse, self).__init__()
         self.status_code = status_code
-        self._content = content
+        self._content = content.encode('utf-8')
 
 
 class CustomerTokenTests(TestCase):

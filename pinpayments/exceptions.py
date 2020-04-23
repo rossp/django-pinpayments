@@ -1,7 +1,6 @@
 """
 Contains exception types
 """
-from __future__ import unicode_literals
 
 
 class ConfigError(Exception):
