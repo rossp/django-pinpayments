@@ -1,10 +1,10 @@
 # django-pinpayments
 
-`django-pinpayments` provides helper functions for [Pin Payments](https://pin.net.au) - a relatively new Australian payment processor that doesn't require merchant accounts and that doesn't require purchasers to have an account. Some may call it the "Australian version of Stripe".
+`django-pinpayments` provides helper functions for [Pin Payments](https://pinpayments.com) - a relatively new Australian payment processor that doesn't require merchant accounts and that doesn't require purchasers to have an account. Some may call it the "Australian version of Stripe".
 
-`django-pinpayments` provides template tags to render the [*Pin.js payment form*](https://pin.net.au/docs/guides/payment-forms), which uses the Card API for processing. This means you can collect credit card details on your website, submit them via javascript to Pin (without them landing on your server), then process the payment on your server using the single-use card token that Pin return.
+`django-pinpayments` provides template tags to render the [*Pin.js payment form*](https://pinpayments.com/developers/integration-guides/payment-forms), which uses the Card API for processing. This means you can collect credit card details on your website, submit them via javascript to Pin (without them landing on your server), then process the payment on your server using the single-use card token that Pin return.
 
-The provided Card tokens can also be used to create [Customer tokens](https://pin.net.au/docs/api/customers), to use for delayed or recurring billing.
+The provided Card tokens can also be used to create [Customer tokens](https://pinpayments.com/developers/integration-guides/payment-forms), to use for delayed or recurring billing.
 
 `django-pinpayments` is designed to be a simple base for your own billing projects. It doesn't make too many assumptions, and leaves many things open for your design input.
 
@@ -22,7 +22,7 @@ The provided Card tokens can also be used to create [Customer tokens](https://pi
 
 ### Pre-requisites
 
-* Django (Only tested on 1.4 & 1.5)
+* Django (Only tested on 3.0)
 * [python-requests](http://docs.python-requests.org/en/latest/)
 * [Mock](http://www.voidspace.org.uk/python/mock/)
 
@@ -46,22 +46,22 @@ This setting, with at least one environment, is **required** for django-pinpayme
         'test': {
             'key': 'pk_qokBvPpEHIVmNETSoSdDVYP',
             'secret': 'MBjZMurpDtjDANDNFQObZmBhMg',
-            'host': 'test-api.pin.net.au',
+            'host': 'test-api.pinpayments.com',
         },
         'live': {
             'key': 'pk_yGCGLonMHJMFscFyNaLZdkEV',
             'secret': 'tOAQeMsMaBrxejJHIqHJVIObUS',
-            'host': 'api.pin.net.au',
+            'host': 'api.pinpayments.com',
         },
         'live_project2': {
             'key': 'pk_ByNNmfJfsMywEIEa-aCteTR',
             'secret': 'CPslpGmoakWdPuxjtrfibZVLaS',
-            'host': 'api.pin.net.au',
+            'host': 'api.pinpayments.com',
         },
     }
 ```
 
-API keys and secrets are available from your [Pin Account page](https://dashboard.pin.net.au/account). Hosts should not include *https* or a trailing slash; these will be added automatically.
+API keys and secrets are available from your [Pin Account page](https://dashboard.pinpayments.com/account). Hosts should not include *https* or a trailing slash; these will be added automatically.
 
 #### `PIN_DEFAULT_ENVIRONMENT`
 
@@ -143,7 +143,7 @@ You may choose to call the `process_transaction()` function sometime *after* cre
 
 #### pinpayments.CustomerToken
 
-If you do recurring billing, or if you charge a card a significant amount of time after collecting card details (at present, Pin [expire card tokens](https://pin.net.au/docs/api/cards) after 1 month) then you need to use the Customers API to create a `Customer` record. A `Customer` can then have multiple transactions created, without collecting card details again.
+If you do recurring billing, or if you charge a card a significant amount of time after collecting card details (at present, Pin [expire card tokens](https://pinpayments.com/developers/api/cards) after 1 month) then you need to use the Customers API to create a `Customer` record. A `Customer` can then have multiple transactions created, without collecting card details again.
 
 In the view that receives `card_token` from your payment form, create a new instance of `CustomerToken` using the provided `create_from_card_token` function.
 
@@ -195,7 +195,7 @@ Because you're keeping the `CustomerToken`, you can re-bill them as often as is 
 #### `pinpayments.BankAccount`
 
 This model has limited functionality but as a storage tool.
-It houses the bank account information returned from Pin.net.au on the creation
+It houses the bank account information returned from Pin on the creation
 of bank account tokens.
 
 #### `pinpayments.PinRecipient`
@@ -281,6 +281,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 2.0dev1
 - Add Plans and Subscriptions
+
+1.1.0
+- Support for Django 3.0 and Python 3
 
 1.0.9 (Jan 09, 2014)
 - Initial support for Payments

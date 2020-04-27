@@ -14,6 +14,12 @@ CURRENCIES = (
     "CAD",
     "HKD",
     "JPY",
+    "MYR",
+    "THB",
+    "PHP",
+    "ZAR",
+    "IDR",
+    "TWD",
 )
 
 
@@ -31,7 +37,76 @@ DECIMAL_CURRENCIES = (
 
 SINGLE_UNIT_CURRENCIES = (
     "JPY"
+    "MYR",
+    "THB",
+    "PHP",
+    "ZAR",
+    "IDR",
+    "TWD",
 )
+
+CURRENCY_DETAIL = {
+    "AUD": {
+        "symbol": "$",
+        "name": "Australian dollar",
+        },
+    "USD": {
+        "symbol": "$",
+        "name": "US dollar",
+        },
+    "NZD": {
+        "symbol": "$",
+        "name": "New Zealand dollar",
+        },
+    "SGD": {
+        "symbol": "$",
+        "name": "Singaporean dollar",
+        },
+    "EUR": {
+        "symbol": "€",
+        "name": "Euro",
+        },
+    "GBP": {
+        "symbol": "£",
+        "name": "Pound sterling",
+        },
+    "CAD": {
+        "symbol": "$",
+        "name": "Canadian dollar",
+        },
+    "HKD": {
+        "symbol": "$",
+        "name": "Hong Kong dollar",
+        },
+    "JPY": {
+        "symbol": "¥",
+        "name": "Japanese yen",
+        },
+    "MYR": {
+        "symbol": "RM",
+        "name": "Malaysian ringgit",
+        },
+    "THB": {
+        "symbol": "฿",
+        "name": "Thai baht",
+        },
+    "PHP": {
+        "symbol": "₱",
+        "name": "Philippine peso",
+        },
+    "ZAR": {
+        "symbol": "R",
+        "name": "South African rand",
+        },
+    "IDR": {
+        "symbol": "Rp",
+        "name": "Indonesian rupiah",
+        },
+    "TWD": {
+        "symbol": "NT$",
+        "name": "New Taiwan dollar",
+        },
+}
 
 
 def get_value(amount, currency):
