@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.utils.translation import ugettext_lazy as _
 
 from pinpayments.models import (
-    PinRecipient, PinTransfer, PinTransaction, CustomerToken
+    PinRecipient, PinTransfer, PinTransaction, CustomerToken, PinPlan, Subscription
 )
 
 
@@ -171,8 +171,26 @@ class PinRecipientAdmin(admin.ModelAdmin):
     inlines = (PinTransferInline,)
     readonly_fields = list_display  # all the fields
 
+class PinPlanAdmin(admin.ModelAdmin):
+    """ Allows viewing payment plans. They should be created on the Pin dashboard. """
+    list_display = (
+        'plan_token',
+        'name',
+        'environment',
+        'amount',
+        'currency',
+        'created',
+    )
+    search_fields = ('token', 'name',)
+    list_filter = ('environment', 'currency',)
+    date_hierarchy = 'created'
+
+    def has_add_permission(self, request):
+        return False
 
 admin.site.register(PinRecipient, PinRecipientAdmin)
 admin.site.register(PinTransaction, PinTransactionAdmin)
 admin.site.register(CustomerToken, TokenAdmin)
 admin.site.register(PinTransfer, PinTransferAdmin)
+admin.site.register(PinPlan, PinPlanAdmin)
+admin.site.register([Subscription])

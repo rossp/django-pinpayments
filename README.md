@@ -279,6 +279,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Changelog
 
+2.0dev1
+- Add Plans and Subscriptions
+
 1.0.9 (Jan 09, 2014)
 - Initial support for Payments
 

@@ -30,6 +30,12 @@ CARD_TYPES = (
     ('visa', 'Visa'),
 )
 
+PLAN_INTERVAL_CHOICES = (
+    ('day', 'Day(s)'),
+    ('week', 'Week(s)'),
+    ('month', 'Month(s)'),
+    ('year', 'Year(s)'),
+)
 
 class CustomerToken(models.Model):
     """
@@ -81,7 +87,7 @@ class CustomerToken(models.Model):
         """ Provide a card token to update the details for this customer """
         pin_env = PinEnvironment(self.environment)
         payload = {'card_token': card_token}
-        url_tail = "/customers/{1}".format(self.token)
+        url_tail = "/customers/{}".format(self.token)
         data = pin_env.pin_put(url_tail, payload)[1]['response']
         self.card_number = data['card']['display_number']
         self.card_type = data['card']['scheme']
@@ -446,3 +452,183 @@ class PinTransfer(models.Model):
             pin_response_text=response.text,
         )
         return new_transfer
+
+
+class PinPlan(models.Model):
+    """
+    A Plan from a PinEnvironment to configure payment plans, which are
+    later used by Customers to get Subscriptions.
+
+    These are kept in sync with Pin Payments via the relevant command-line
+    management command and via webhooks.
+    """
+    environment = models.CharField(
+        max_length=25, db_index=True, blank=True,
+        help_text=_('The name of the Pin environment to use, eg test or live.')
+    )
+    plan_token = models.CharField(
+        _("Pin API Plan Token"), max_length=100, blank=True, null=True,
+        db_index=True, help_text=_("Unique ID from Pin for this plan")
+    )
+    active = models.BooleanField(
+        blank=True, default=True,
+        help_text=_("Is this Plan still visible on the Pin API?")
+    )
+    name = models.CharField(
+        max_length=100, blank=True, null=True,
+        help_text=_("Description as shown on statement")
+    )
+    currency = models.CharField(
+        max_length=10, help_text=_("Currency of plan")
+    )
+    amount = models.IntegerField(
+        help_text=_("Charge amount, in the base unit of the currency (e.g.: cents for AUD, yen for JPY)"),
+    )
+    interval = models.IntegerField(
+        help_text=_("The interval between subsequent charges, interpreted in units defined in interval_units")
+    )
+    interval_unit = models.CharField(
+        max_length=10, choices=PLAN_INTERVAL_CHOICES,
+        help_text=_("The unit of measure applied to the interval amount."),
+    )
+    intervals = models.IntegerField(
+        default=0, blank=True,
+        help_text=_("Number of intervals before a subscription is automatically cancelled. Default 0 (no limit)"),
+    )
+    setup_amount = models.IntegerField(
+        default=0, blank=True,
+        help_text=_("Amount to charge (in the currency base unit, eg cents for AUD) at the start of the first full interval."),
+    )
+    trial_amount = models.IntegerField(
+        default=0, blank=True,
+        help_text=_("Amount the customer will be charged in the currency base unit upon initiating a trial of this plan."),
+    )
+    trial_interval = models.IntegerField(
+        default=0, blank=True,
+        help_text=_("The interval between the start of the trial period and beginning of the paid subscription proper.")
+    )
+    trial_interval_unit = models.CharField(
+        max_length=10, choices=PLAN_INTERVAL_CHOICES,
+        help_text=_("The unit of measure applied to the trial interval amount."),
+    )
+    permission_cancel = models.BooleanField(
+        blank=True, default=True,
+        help_text=_("Can the customer cancel the subscription themselves via a link in their receipts?"),
+    )
+    created = models.DateTimeField(auto_now_add=True)
+    pin_response_text = models.TextField(
+        _("Complete API Response"), blank=True, null=True,
+        help_text=_("The full JSON response from the Pin API")
+    )
+
+    def __str__(self):
+        return "{0}".format(self.plan_token)
+
+    @property
+    def value(self):
+        """
+        Returns the value of the plan in the representation of the
+        currency it is in, without symbols
+        That is, 1000 cents as 10.00, 1000 yen as 1000
+        """
+        return get_value(self.amount, self.currency)
+
+    def save(self, *args, **kwargs):
+        if not self.environment:
+            self.environment = getattr(settings, 'PIN_DEFAULT_ENVIRONMENT', 'test')
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_from_pin(cls, environment=''):
+        """
+        Retrieves all Plans from Pin Payments API and creates local PinPlan records
+        for each one. Any local PinPlan record that isn't returned by the API will
+        have the status changed to 'inactive'.
+        """
+
+        new_plans = 0
+        updated_plans = 0
+
+        pin_env = PinEnvironment(environment)
+        response, response_json = pin_env.pin_get('/plans', {})
+        data = response_json['response']
+
+        for plan in data:
+            new_plan, created = PinPlan.objects.update_or_create(
+                    plan_token=plan['token'], defaults={
+                        'plan_token': plan['token'],
+                        'name': plan['name'],
+                        'environment': environment,
+                        'amount': plan['amount'],
+                        'currency': plan['currency'],
+                        'setup_amount': plan['setup_amount'],
+                        'trial_amount': plan['trial_amount'],
+                        'interval': plan['interval'],
+                        'interval_unit': plan['interval_unit'],
+                        'intervals': plan['intervals'],
+                        'trial_interval': plan['trial_interval'],
+                        'trial_interval_unit': plan['trial_interval_unit'],
+                        'permission_cancel': 'cancel' in plan['customer_permissions'],
+                        'pin_response_text': response.text,
+                    })
+            if created:
+                new_plans += 1
+            else:
+                updated_plans += 1
+
+        return {'new': new_plans, 'updated': updated_plans}
+
+
+class Subscription(models.Model):
+    """
+    An instance of a PinPlan in a PinEnvironment being paid on a regular
+    basis by a CustomerToken.
+
+    Plans define the payment rules, and are generally setup once in advance.
+
+    Subscriptions tie a token to a plan with a set of parameters on file regarding
+    trial dates etc.
+
+    The master source of subscription data is Pin Payments and they bill
+    automatically at their end based on THEIR holding of Subscription data. As
+    such, we can create new Subscriptions in code but need to ensure that data
+    is kept up to date via webhooks.
+    """
+    subscription_token = models.CharField(
+        _("Pin API Subscription Token"), max_length=100, blank=True, null=True,
+        db_index=True, help_text=_("Unique ID from Pin for this subscription")
+    )
+    environment = models.CharField(
+        max_length=25, db_index=True, blank=True,
+        help_text=_('The name of the Pin environment to use, eg test or live.')
+    )
+    plan = models.ForeignKey(PinPlan, on_delete=models.CASCADE)
+    customer = models.ForeignKey(CustomerToken, on_delete=models.CASCADE)
+    active = models.BooleanField(
+        blank=True, default=True,
+        help_text=_("Is this subscription still visible on the Pin API?")
+    )
+    next_billing_date = models.DateTimeField(
+        blank=True, null=True,
+        help_text=_("The next time this subscription will be charged"),
+        )
+    active_interval_started_at = models.DateTimeField(
+        blank=True, null=True,
+        help_text=_("When did the current trial or billing period begin?"),
+        )
+    active_interval_finishes_at = models.DateTimeField(
+        blank=True, null=True,
+        help_text=_("When will the current trial or billing period finish?"),
+        )
+    cancelled_at = models.DateTimeField(
+        blank=True, null=True,
+        help_text=_("When was the subscription cancelled?"),
+        )
+
+    def __str__(self):
+        return self.plan_token
+
+    def save(self, *args, **kwargs):
+        if not self.environment:
+            self.environment = getattr(settings, 'PIN_DEFAULT_ENVIRONMENT', 'test')
+        super().save(*args, **kwargs)
