@@ -279,6 +279,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ### Changelog
 
+1.1.0
+- Support for Django 3.0 and Python 3
+
 1.0.9 (Jan 09, 2014)
 - Initial support for Payments
 
