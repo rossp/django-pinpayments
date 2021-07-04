@@ -1,3 +1,7 @@
+> ## Maintainer Wanted
+> 
+> I no longer have any side projects that use `django-pinpayments` and I don't have the time or headspace to maintain an important project. If you're interested in helping maintain this project, add new features, etc then please get in touch [via the relevant issue](https://github.com/rossp/django-pinpayments/issues/27).
+
 # django-pinpayments
 
 `django-pinpayments` provides helper functions for [Pin Payments](https://pinpayments.com) - a relatively new Australian payment processor that doesn't require merchant accounts and that doesn't require purchasers to have an account. Some may call it the "Australian version of Stripe".
